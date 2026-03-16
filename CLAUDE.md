@@ -50,11 +50,32 @@ For detailed architecture docs, see @docs/architecture.md
 ## Operations Commands
 - `/deploy` — Production deployment with pre-flight checks and monitoring
 - `/costoptimization` — Audit agent usage, context waste, and code for cost savings
+- `/oncall` — Start autonomous production monitoring with self-healing
+- `/distribute` — Full release workflow: version, build, publish, deploy, announce
+- `/social-post` — Create and post social media content about the project
+- `/rollback` — Explicit versioned rollback with optional migration revert
+- `/deps` — Dependency audit and upgrade workflow
+- `/env` — Environment variable validation and sync across environments
+- `/instrument` — Add structured logging, tracing, and metrics to endpoints
+- `/changelog` — Generate changelog from conventional commits
+
+## Database & Data Commands
+- `/migrate` — Database migration management: create, run, validate, rollback
+- `/new-model <name>` — Scaffold a data model with ORM, migration, seed data, and types
+
+## Testing & Debugging Commands
+- `/debug` — Structured debugging workflow: isolate, diagnose, fix, verify
+- `/load-test` — Performance and load testing with latency metrics
+- `/snapshot` — Visual regression testing: capture and diff UI screenshots
+
+## Feature Management Commands
+- `/feature-flag` — Create, toggle, audit, and retire feature flags
 
 ## Scaffolding Commands
 - `/new-component <name>` — Scaffold a UI component with styles, tests, and exports
 - `/new-page <name>` — Scaffold a page/route with loading and error states
 - `/new-endpoint <description>` — Scaffold an API endpoint with validation and tests
+- `/new-service <name>` — Scaffold a microservice with Dockerfile, health endpoint, and logging
 
 ## Available Agents
 This project includes a full product development team in `.claude/agents/`:
@@ -73,6 +94,12 @@ This project includes a full product development team in `.claude/agents/`:
 - **security-reviewer** — Security auditing, OWASP top 10, auth flaws, data exposure
 - **gtm-strategist** — Go-to-market strategy, positioning, launch planning, growth experiments, content/social strategy
 - **social-strategist** — Autonomous social media management, content generation, Playwright automation, platform optimization
+- **on-call-engineer** — Autonomous production monitoring, incident diagnosis, self-healing, rollback, alerting
+- **release-engineer** — Release management, versioning, changelog, package publishing, CI/CD, multi-environment promotion
+- **database-engineer** — Schema design, migrations, query optimization, indexing, data modeling, seed data
+- **technical-writer** — Documentation ownership: API docs, architecture docs, runbooks, changelogs
+- **devops-engineer** — Infrastructure-as-code, CI/CD, containers, environment provisioning, secrets management
+- **growth-engineer** — A/B testing, conversion funnel optimization, referral mechanics, growth experiments
 
 ## API Documentation
 See @docs/api.md for endpoint documentation and response formats.
