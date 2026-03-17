@@ -58,6 +58,7 @@ For detailed architecture docs, see @docs/architecture.md
 - `/env` — Environment variable validation and sync across environments
 - `/instrument` — Add structured logging, tracing, and metrics to endpoints
 - `/changelog` — Generate changelog from conventional commits
+- `/autobuild` — Autonomous build loop: plan → build → test → loop until done or checkpoint
 
 ## Database & Data Commands
 - `/migrate` — Database migration management: create, run, validate, rollback

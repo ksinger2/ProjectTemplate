@@ -23,6 +23,13 @@ WHEN TO UPDATE:
 
 ## What Was Done This Session
 
+### Autonomous Build Loop
+- Created `/autobuild` command — autonomous plan → build → test → loop workflow with checkpoint support
+- Created `build-loop-state` skill — persistent state management for build iterations (reads/writes `tasks/build-state.md`)
+- Updated `CLAUDE.md` — added `/autobuild` to commands section
+- Created `tasks/` directory with `.gitkeep` — referenced by HardRules (plans), autobuild (build state), and task tracking
+- Added Phase 3.3 specialist reviews to autobuild: design (`lead-designer`), security (`security-reviewer`), and AI prompt optimization (`ai-engineer`) — all run in parallel as blocking gates before shipping
+
 ### Autonomous On-Call & Self-Healing System
 - Created **on-call-engineer** agent — autonomous monitoring, 4-tier escalation, self-healing protocol with guardrails
 - Created **release-engineer** agent — semantic versioning, changelog generation, multi-environment promotion
@@ -74,11 +81,12 @@ WHEN TO UPDATE:
 
 ## What's Working
 - 21 agent files in `.claude/agents/` — full product + ops + data team
-- 33 slash commands in `.claude/commands/`
-- 15 skills in `.claude/skills/`
+- 34 slash commands in `.claude/commands/`
+- 16 skills in `.claude/skills/`
 - 8 docs files covering architecture, API, deployment, on-call, runbook, data model, ADR
 - GitHub templates for PRs and issues
 - CLAUDE.md lists all 21 agents and all commands
+- `/autobuild` autonomous build loop with persistent state tracking
 - CI workflow has health-check + auto-rollback jobs (commented, ready to configure)
 
 ## What's Broken / In Progress
@@ -88,17 +96,18 @@ WHEN TO UPDATE:
 
 ## Next Steps
 1. Use `/setup` to initialize a new project from this template
-2. Configure `docs/oncall-setup.md` with real health endpoints and webhook URLs
-3. Uncomment CI workflow jobs in `.github/workflows/ci.yml` and set `HEALTH_URL` and `SLACK_WEBHOOK_URL` repository variables
-4. Configure MCP servers per `docs/mcp-setup.md` for device testing
-5. Define brand voice and platform priorities for the social-strategist agent
-6. Build the first feature
+2. Run `/autobuild` to autonomously plan and build the first feature
+3. Or use the manual workflow: `/plan` → `/ship` → `/review`
+4. Configure `docs/oncall-setup.md` with real health endpoints and webhook URLs
+5. Uncomment CI workflow jobs in `.github/workflows/ci.yml` and set `HEALTH_URL` and `SLACK_WEBHOOK_URL` repository variables
+6. Configure MCP servers per `docs/mcp-setup.md` for device testing
+7. Define brand voice and platform priorities for the social-strategist agent
 
 ## Architecture
 - Template project with agent-first workflow
 - 21 specialized agents in `.claude/agents/`
-- 33 slash commands in `.claude/commands/`
-- 15 skills in `.claude/skills/`
+- 34 slash commands in `.claude/commands/`
+- 16 skills in `.claude/skills/`
 - MCP integration for device testing, browser automation, Figma, Gmail, Google Calendar
 - CI pipeline with health-check and auto-rollback capability
 

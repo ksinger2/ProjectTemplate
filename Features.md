@@ -22,3 +22,4 @@
 - [x] CI/CD enhancements — health-check, auto-rollback, and notification jobs in CI workflow (2026-03-16)
 - [x] GitHub templates — PR template, bug report template, feature request template, CONTRIBUTING.md (2026-03-16)
 - [x] Operational docs — runbook.md, data-model.md, oncall-setup.md (2026-03-16)
+- [x] Autonomous build loop — `/autobuild` command, `build-loop-state` skill for persistent state across iterations (2026-03-16)
