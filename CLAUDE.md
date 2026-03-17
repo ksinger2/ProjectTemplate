@@ -43,6 +43,7 @@ For detailed architecture docs, see @docs/architecture.md
 - `/qa` — Comprehensive QA with automated + manual testing
 - `/fix` — Team-based QA and fix workflow
 - `/designreview` — Designer + QA review all screens, then engineering fixes issues
+- `/visual-loop` — Real-time visual iteration: screenshot → design review → PM review → engineering fix → loop until polished
 - `/codeclean` — All engineering agents review and clean up the entire codebase
 - `/security` — Full security audit (OWASP top 10, auth, injection, data exposure)
 - `/privacy` — Privacy and data protection compliance audit (GDPR, CCPA)
@@ -101,6 +102,33 @@ This project includes a full product development team in `.claude/agents/`:
 - **technical-writer** — Documentation ownership: API docs, architecture docs, runbooks, changelogs
 - **devops-engineer** — Infrastructure-as-code, CI/CD, containers, environment provisioning, secrets management
 - **growth-engineer** — A/B testing, conversion funnel optimization, referral mechanics, growth experiments
+
+## Browser Automation (Chrome CDP)
+
+This project includes the `chrome-cdp` skill for real-time browser interaction:
+
+**Setup:**
+1. Enable remote debugging: `chrome://inspect/#remote-debugging` → toggle switch
+2. Requires Node.js 22+
+
+**Quick Commands:**
+```bash
+# List open tabs
+.claude/skills/chrome-cdp/scripts/cdp.mjs list
+
+# Take screenshot
+.claude/skills/chrome-cdp/scripts/cdp.mjs shot <target> /tmp/screenshot.png
+
+# Navigate, click, type
+.claude/skills/chrome-cdp/scripts/cdp.mjs nav <target> http://localhost:3000
+.claude/skills/chrome-cdp/scripts/cdp.mjs click <target> "button.submit"
+.claude/skills/chrome-cdp/scripts/cdp.mjs type <target> "test input"
+
+# Cleanup screenshots
+rm ~/.cache/cdp/screenshot-*.png
+```
+
+Use with `/visual-loop` for automated design review iterations.
 
 ## API Documentation
 See @docs/api.md for endpoint documentation and response formats.
