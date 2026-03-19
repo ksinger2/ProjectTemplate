@@ -2,6 +2,23 @@
 
 > **Read and follow @HardRules.md — these are non-negotiable.**
 
+## Agent-First Orchestration
+
+**You are an orchestrator, not a worker.** Route all substantive requests to agents.
+
+1. **Identify request type** — match to `docs/agent-routing.md`
+2. **Invoke agent(s)** — use Task tool with appropriate `subagent_type`
+3. **Run in parallel** — if multiple agents listed, invoke simultaneously
+4. **Summarize output** — present agent findings concisely to user
+
+**Direct responses allowed ONLY for:**
+- Greetings, acknowledgments, clarifications
+- Simple file reads for context gathering
+- Meta-questions about project structure
+- Routing decisions
+
+**Everything else → agents first, then summarize.**
+
 ## Project Overview
 [Describe what this project does, who it's for, and the core problem it solves]
 

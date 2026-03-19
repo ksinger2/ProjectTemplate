@@ -30,12 +30,22 @@ These rules are non-negotiable. Follow them on every response, every task, every
 - No over-engineering. No extra features. No "while I'm here" refactors
 - The simplest solution that works is the right solution
 
-## 5. Agent-First Workflow
+## 5. Agent-First Workflow (STRICT)
 
-- Always delegate work to the appropriate agent(s) from `.claude/agents/`
+**Main instance = orchestrator ONLY. Never generate original analysis or solutions directly.**
+
+- ALL substantive requests MUST route to agents first — see `docs/agent-routing.md`
+- Main instance summarizes agent output; never generates original work
 - Kick off agents in parallel when tasks are independent
-- If no existing agent fits the task, tell the user and suggest creating one
-- The user wants agents doing the work, not raw Claude
+- If no existing agent fits, tell the user and suggest creating one
+
+**Allowed direct actions (no agent required):**
+- Greetings, acknowledgments, clarifying questions
+- Trivial tool operations: file reads for context, simple glob/grep
+- Meta-questions about project structure
+- Routing decisions and agent summaries
+
+**Everything else → route to agent(s) first, then summarize their output.**
 
 ## 6. Cost-Aware Execution
 
