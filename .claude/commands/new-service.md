@@ -4,6 +4,16 @@ description: Scaffold a new microservice/module with Dockerfile, health endpoint
 
 # /new-service — Microservice/Module Scaffolding
 
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT scaffold directly.
+
+1. Route to `devops-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
+
 You are scaffolding a new service or module. This creates a complete, runnable service boundary.
 
 ## 1. Gather Requirements

@@ -18,9 +18,9 @@ If `docs/oncall-setup.md` has placeholder values (e.g., `{{BASE_URL}}`), ask the
 
 ## 2. Set Up Monitoring Loop
 
-Use `CronCreate` to schedule recurring health checks at the configured interval.
+Run health checks in a background loop using Bash with `run_in_background: true`.
 
-The cron job should:
+The monitoring loop should:
 1. Run all configured health checks (curl each endpoint)
 2. Check response codes and response times
 3. If ALL checks pass → log success silently
@@ -29,6 +29,8 @@ The cron job should:
    - The error details (status code, response body, timeout)
    - Current timestamp
    - Link to `docs/oncall-setup.md` for escalation policy
+
+**Note:** Background monitoring is session-bound. For durable monitoring, use the CI workflow health-check job or an external service.
 
 ## 3. Initial Health Check
 
@@ -46,7 +48,7 @@ Tell the user:
 - Check interval
 - Configured alert channels
 - Auto-fix status (enabled/disabled, boundaries)
-- **Important**: Remind that CronCreate jobs are session-bound and expire after 3 days. Re-run `/oncall` in new sessions.
+- **Important**: Background monitoring is session-bound. Re-run `/oncall` in new sessions.
 - The CI workflow health-check job provides durable monitoring as a fallback.
 
 ## 5. Optional: Custom Interval

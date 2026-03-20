@@ -4,6 +4,16 @@ description: Structured debugging workflow — isolate root cause, trace errors,
 
 # /debug — Structured Debugging Workflow
 
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT debug directly.
+
+1. Route to `principal-engineer` or `backend-lead-engineer` / `frontend-lead-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
+
 You are running a structured debugging session. Follow this protocol systematically.
 
 ## 1. Capture the Problem

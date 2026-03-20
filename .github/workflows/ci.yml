@@ -84,8 +84,15 @@ jobs:
       # - name: Test
       #   run: go test ./...
 
-      - name: Placeholder
-        run: echo "Configure CI steps above for your stack. See CLAUDE.md."
+      - name: Validate CI configuration
+        run: |
+          # This step ensures the CI template has been configured.
+          # Remove this step and uncomment the stack-specific steps above.
+          echo "⚠️  CI template not configured yet."
+          echo "Edit .github/workflows/ci.yml and uncomment steps for your stack."
+          echo "See CLAUDE.md for project-specific build/test commands."
+          # Uncomment the next line to fail CI until configured:
+          # exit 1
 
   # Uncomment for dependency security scanning
   # security:
@@ -185,13 +192,15 @@ jobs:
   #     - name: Notify success
   #       if: needs.build-and-test.result == 'success' && vars.SLACK_WEBHOOK_URL != ''
   #       run: |
+  #         MSG=$(echo "${{ github.event.head_commit.message }}" | head -c 100 | tr '\n' ' ')
   #         curl -X POST -H 'Content-Type: application/json' \
-  #           -d "{\"text\":\"✅ CI passed on main: ${{ github.event.head_commit.message }} (${{ github.sha }})\"}" \
+  #           -d "{\"text\":\"✅ CI passed on main: ${MSG} (${{ github.sha }})\"}" \
   #           "${{ vars.SLACK_WEBHOOK_URL }}"
   #
   #     - name: Notify failure
   #       if: needs.build-and-test.result == 'failure' && vars.SLACK_WEBHOOK_URL != ''
   #       run: |
+  #         MSG=$(echo "${{ github.event.head_commit.message }}" | head -c 100 | tr '\n' ' ')
   #         curl -X POST -H 'Content-Type: application/json' \
-  #           -d "{\"text\":\"❌ CI failed on main: ${{ github.event.head_commit.message }} (${{ github.sha }}). Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+  #           -d "{\"text\":\"❌ CI failed on main: ${MSG} (${{ github.sha }}). Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
   #           "${{ vars.SLACK_WEBHOOK_URL }}"

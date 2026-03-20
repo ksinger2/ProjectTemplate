@@ -3,6 +3,10 @@
 // Uses raw CDP over WebSocket, no Puppeteer dependency.
 // Requires Node 22+ (built-in WebSocket).
 //
+// SECURITY NOTE: This tool is designed for trusted development contexts only.
+// It executes JavaScript in browser pages and should NOT be used in automated
+// pipelines with untrusted input. The eval command runs arbitrary JS.
+//
 // Per-tab persistent daemon: page commands go through a daemon that holds
 // the CDP session open. Chrome's "Allow debugging" modal fires once per
 // daemon (= once per tab). Daemons auto-exit after 20min idle.
@@ -355,13 +359,31 @@ async function waitForDocumentReady(cdp, sid, timeoutMs = NAVIGATION_TIMEOUT) {
   throw new Error('Timed out waiting for navigation to finish');
 }
 
+// Block internal/private IP ranges to prevent SSRF
+function isPrivateHost(hostname) {
+  // localhost variants
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+  // IPv4 private ranges
+  if (/^10\./.test(hostname)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return true;
+  if (/^192\.168\./.test(hostname)) return true;
+  // Link-local
+  if (/^169\.254\./.test(hostname)) return true;
+  // IPv6 private
+  if (/^f[cd][0-9a-f]{2}:/i.test(hostname)) return true;
+  if (/^fe80:/i.test(hostname)) return true;
+  return false;
+}
+
 async function navStr(cdp, sid, url) {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
       throw new Error(`Only http/https URLs allowed, got: ${url}`);
+    if (isPrivateHost(parsed.hostname))
+      throw new Error(`Navigation to private/internal addresses blocked: ${parsed.hostname}`);
   } catch (e) {
-    if (e.message.startsWith('Only')) throw e;
+    if (e.message.startsWith('Only') || e.message.startsWith('Navigation')) throw e;
     throw new Error(`Invalid URL: ${url}`);
   }
   await cdp.send('Page.enable', {}, sid);
@@ -455,9 +477,36 @@ async function loadAllStr(cdp, sid, selector, intervalMs = 1500) {
   return `Clicked "${selector}" ${clicks} time(s) until it disappeared`;
 }
 
+// Allowlist of safe CDP methods for evalraw command
+// Excludes destructive methods like Browser.crash, Page.close, Target.closeTarget
+const CDP_ALLOWLIST = new Set([
+  // DOM inspection (read-only)
+  'DOM.getDocument', 'DOM.querySelector', 'DOM.querySelectorAll', 'DOM.getOuterHTML',
+  'DOM.getAttributes', 'DOM.describeNode', 'DOM.getBoxModel', 'DOM.getNodeForLocation',
+  // CSS inspection (read-only)
+  'CSS.getComputedStyleForNode', 'CSS.getInlineStylesForNode', 'CSS.getMatchedStylesForNode',
+  // Page info (read-only)
+  'Page.getFrameTree', 'Page.getLayoutMetrics', 'Page.getNavigationHistory',
+  // Runtime inspection (read-only queries)
+  'Runtime.getProperties', 'Runtime.globalLexicalScopeNames', 'Runtime.getHeapUsage',
+  // Network inspection (read-only)
+  'Network.getCookies', 'Network.getAllCookies', 'Network.getResponseBody',
+  // Performance (read-only)
+  'Performance.getMetrics', 'Performance.enable', 'Performance.disable',
+  // Accessibility (read-only)
+  'Accessibility.getFullAXTree', 'Accessibility.getPartialAXTree',
+  // Console (read-only)
+  'Console.enable', 'Console.disable',
+  // Log (read-only)
+  'Log.enable', 'Log.disable',
+]);
+
 // Send a raw CDP command and return the result as JSON
 async function evalRawStr(cdp, sid, method, paramsJson) {
   if (!method) throw new Error('CDP method required (e.g. "DOM.getDocument")');
+  if (!CDP_ALLOWLIST.has(method)) {
+    throw new Error(`CDP method "${method}" not in allowlist. Allowed: ${[...CDP_ALLOWLIST].join(', ')}`);
+  }
   let params = {};
   if (paramsJson) {
     try { params = JSON.parse(paramsJson); }
