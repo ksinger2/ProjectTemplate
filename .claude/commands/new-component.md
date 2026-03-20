@@ -1,4 +1,18 @@
+---
+description: Scaffold a new UI component with styles, tests, and exports
+---
+
 # New Component — Scaffold a UI Component
+
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT scaffold directly.
+
+1. Route to `frontend-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
 
 Create a new reusable UI component with all necessary files.
 

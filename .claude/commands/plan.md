@@ -1,4 +1,19 @@
+---
+description: Create a structured implementation plan before building
+---
+
 # Plan — Structured Implementation Planning
+
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT plan directly.
+
+1. Route to `Plan` (built-in agent)
+2. Parallel: `principal-engineer` for technical feasibility
+3. Agent(s) execute the workflow below
+4. Main instance summarizes output (max 4 sentences)
+
+---
 
 Create a detailed implementation plan before building.
 

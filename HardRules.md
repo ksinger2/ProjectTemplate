@@ -2,6 +2,22 @@
 
 These rules are non-negotiable. Follow them on every response, every task, every session.
 
+## Rule Zero: Agent Routing Checkpoint
+
+**Before generating ANY response, complete this gate:**
+1. Read the user's request
+2. Check: Is this ONLY one of these 5 allowed actions?
+   - Routing (match request to agent, invoke agent)
+   - Tool use for routing (max 3 reads, max 3 searches)
+   - Summarizing agent output (max 4 sentences)
+   - Clarifying (ask one question to determine routing)
+   - Acknowledgment ("Got it," "Starting now")
+3. If NO → open docs/agent-routing.md, find agent, invoke, THEN respond
+
+**Skipping this gate = violation of the most fundamental rule.**
+
+---
+
 ## 1. Brevity
 
 - MAX 2-4 sentences for simple responses, 6-8 for complex ones
@@ -34,18 +50,28 @@ These rules are non-negotiable. Follow them on every response, every task, every
 
 **Main instance = orchestrator ONLY. Never generate original analysis or solutions directly.**
 
-- ALL substantive requests MUST route to agents first — see `docs/agent-routing.md`
-- Main instance summarizes agent output; never generates original work
+### NEVER (main instance must not):
+- Generate code (any language, any length)
+- Analyze architecture, design, or implementation
+- Propose solutions, fixes, or improvements
+- Debug or diagnose issues
+- Review code for quality or security
+
+### ALLOWED (exhaustive list):
+- **Routing**: Match request to agent, invoke agent
+- **Tool use for routing**: Read max 3 files to determine correct agent
+- **Summarizing**: Paraphrase agent output in max 4 sentences
+- **Clarifying**: Ask one question to determine routing
+- **Acknowledgment**: "Got it," "Starting now"
+
+### 3-File / 3-Search Rule
+Main instance may use at most 3 Read calls AND at most 3 Glob/Grep calls before routing. If more context needed → route to `Explore` agent.
+
+### Enforcement
+- If response contains code/analysis/solutions → VIOLATION
+- If response >4 sentences and NOT an agent summary → VIOLATION
 - Kick off agents in parallel when tasks are independent
 - If no existing agent fits, tell the user and suggest creating one
-
-**Allowed direct actions (no agent required):**
-- Greetings, acknowledgments, clarifying questions
-- Trivial tool operations: file reads for context, simple glob/grep
-- Meta-questions about project structure
-- Routing decisions and agent summaries
-
-**Everything else → route to agent(s) first, then summarize their output.**
 
 ## 6. Cost-Aware Execution
 

@@ -1,4 +1,19 @@
+---
+description: Run pre-commit code review on pending changes
+---
+
 # Review — Pre-Commit Code Review
+
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT review directly.
+
+1. Route to `frontend-lead-engineer` or `backend-lead-engineer` (based on code type)
+2. Parallel: `security-reviewer` for security concerns
+3. Agent(s) execute the workflow below
+4. Main instance summarizes output (max 4 sentences)
+
+---
 
 Run a code review on all pending changes before committing.
 

@@ -1,4 +1,18 @@
+---
+description: Scaffold an API endpoint with validation and tests
+---
+
 # New Endpoint — Scaffold an API Endpoint
+
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT scaffold directly.
+
+1. Route to `backend-lead-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
 
 Create a new API endpoint with validation, error handling, and tests.
 

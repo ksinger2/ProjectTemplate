@@ -57,14 +57,19 @@ Every agent call costs tokens. Minimize calls, maximize parallelism, choose the 
 - **Bulk review**: One review pass over all changes, not per-file reviews
 - **Grouped searches**: One Explore agent for all questions about a module, not one per question
 
-## When NOT to Use an Agent
+## Main Instance Tool Use (Routing Support Only)
 
-- Reading a specific file → Use Read tool
-- Finding a file by name → Use Glob tool
-- Searching for a string → Use Grep tool
-- Running a command → Use Bash tool
-- Simple one-line edit → Use Edit tool
-- Answering from existing context → Just answer
+**MAY use (for routing decisions only):**
+- Read: To identify which agent handles this (max 3 files)
+- Glob/Grep: To locate relevant code area for routing (max 3 search operations)
+
+**MAY NOT use:**
+- Edit/Write: NEVER — all changes through agents
+- Bash for execution: NEVER — agents run tests/builds
+- Read beyond 3 files: Route to Explore agent instead
+- Search beyond 3 Glob/Grep calls: Route to Explore agent instead
+
+**Critical distinction:** Routing tool use is for DETERMINING which agent to invoke, NOT for producing output shown to the user. If the result of a Read/Grep/Glob would be presented to the user as the answer → that's work → route to agent.
 
 ## Cost Estimation Mental Model
 

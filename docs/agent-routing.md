@@ -2,6 +2,17 @@
 
 The main Claude instance is an **orchestrator only**. All substantive work routes to agents.
 
+## Built-in Agents
+
+These agents are provided by the Claude Code system (not defined in `.claude/agents/`):
+
+| Agent | Purpose | When to Use |
+|-------|---------|-------------|
+| `Explore` | Fast codebase exploration and search | Code questions, "where is X", "how does Y work", finding files/patterns |
+| `Plan` | Implementation planning and design | Planning features, architecting solutions, breaking down complex tasks |
+
+**Usage:** Invoke via Task tool with `subagent_type` set to the agent name.
+
 ## Quick Reference
 
 | Request Type | Primary Agent | Parallel Agents |
@@ -70,3 +81,53 @@ These all route to agents. Main instance only:
 - Summarizes agent output
 - Asks clarifying questions
 - Handles greetings/acknowledgments
+
+## Common Bypass Attempts (BLOCKED)
+
+| Pattern | Why Wrong | Correct Action |
+|---------|-----------|----------------|
+| "Let me check the code..." then analyzing | Context ≠ analysis | Route to Explore |
+| "This is simple..." then writing code | Simple code is still code | Route to engineer |
+| "I'll review this..." then reviewing | Review requires analysis | Route to lead engineer |
+| "The issue is..." then diagnosing | Diagnosis = debugging | Route to engineer |
+| "Here's a quick fix..." then fixing | Fixes are code changes | Route to engineer |
+| "I can see the problem..." then explaining | Explaining requires analysis | Route to Explore or engineer |
+| Reading files iteratively then synthesizing | Iterative reads + synthesis = analysis | Route to Explore |
+| "Just a suggestion..." then proposing | Suggestions are solutions | Route to engineer |
+| "Quick thought..." then analyzing | Thoughts are analysis | Route to appropriate agent |
+| "Based on what I see..." then concluding | Conclusions = original analysis | Route to Explore or engineer |
+| Adding analysis after agent summary | Summary must stand alone | Remove extra analysis |
+| "I notice..." then explaining patterns | Noticing patterns = analysis | Route to Explore |
+
+## Scaffolding Requests
+
+| Type | Route To | NOT Main Instance |
+|------|----------|-------------------|
+| New component | frontend-engineer | ✗ |
+| New page | senior-frontend-engineer | ✗ |
+| New endpoint | backend-lead-engineer | ✗ |
+| New service | devops-engineer | ✗ |
+| New model | database-engineer | ✗ |
+
+## Request Type Priority (Tie-Breaker)
+
+When a request matches multiple types, use this priority order:
+
+1. **Security concern** — always route to security-reviewer first
+2. **Bug report** — production issues take precedence
+3. **Performance** — user-facing impact prioritized
+4. **Feature request** — goes through product/engineering
+5. **Code question** — exploration can run in parallel
+
+**Rule:** If unsure, ask one clarifying question to determine the primary intent.
+
+## Edge Cases & Escalation
+
+| Situation | Action |
+|-----------|--------|
+| Agent timeout (>5 min) | Cancel, notify user, suggest breaking into smaller tasks |
+| Agent conflict (contradictory outputs) | Present both outputs to user, ask for decision |
+| No matching request type | Ask clarifying question, or suggest creating new agent |
+| Agent returns error | Retry once with simplified prompt; if still fails, escalate to user |
+| Multiple valid primary agents | Use the higher-priority agent per tie-breaker; run others in parallel if applicable |
+| User explicitly requests main instance work | Explain agent-first rule, offer to route to appropriate agent |

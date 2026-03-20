@@ -1,4 +1,18 @@
+---
+description: Scaffold a new page or route with loading and error states
+---
+
 # New Page — Scaffold a Page/Route
+
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT scaffold directly.
+
+1. Route to `senior-frontend-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
 
 Create a new page or route with all necessary files.
 

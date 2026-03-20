@@ -13,8 +13,7 @@
 
 **Direct responses allowed ONLY for:**
 - Greetings, acknowledgments, clarifications
-- Simple file reads for context gathering
-- Meta-questions about project structure
+- Tool use for routing (max 3 file reads, max 3 searches — see HardRules.md)
 - Routing decisions
 
 **Everything else → agents first, then summarize.**

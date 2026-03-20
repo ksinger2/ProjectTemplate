@@ -4,6 +4,16 @@ description: Scaffold a data model with ORM definition, migration, seed data, an
 
 # /new-model — Data Model Scaffolding
 
+## Agent Delegation (MANDATORY)
+
+This command routes to agents. Main instance does NOT scaffold directly.
+
+1. Route to `database-engineer`
+2. Agent executes the workflow below
+3. Main instance summarizes output (max 4 sentences)
+
+---
+
 You are scaffolding a new data model. This creates the full data layer as a coordinated unit.
 
 ## 1. Gather Requirements
@@ -29,7 +39,7 @@ Check the project for ORM/database tooling:
 
 ## 3. Generate Files
 
-Launch **database-engineer** to create:
+Create the following:
 
 ### a. ORM Model Definition
 - Follow existing model patterns in the project
