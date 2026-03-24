@@ -73,7 +73,7 @@ export default function FriendsPage() {
             </p>
           )}
           {success && (
-            <p className="text-sm text-green-400" role="status">
+            <p className="text-sm text-[#46d369]" role="status">
               {success}
             </p>
           )}

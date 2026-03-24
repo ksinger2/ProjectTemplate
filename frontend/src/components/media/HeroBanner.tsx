@@ -115,7 +115,7 @@ export function HeroBanner({ media }: HeroBannerProps) {
         {/* CTA Buttons */}
         <div className="flex items-center gap-3">
           <Link
-            href={`/media/${media.id}`}
+            href={`/player/${media.id}`}
             className={cn(
               'inline-flex items-center justify-center rounded-lg px-6 h-11',
               'bg-bb-accent hover:bg-bb-accent-hover text-black font-semibold',

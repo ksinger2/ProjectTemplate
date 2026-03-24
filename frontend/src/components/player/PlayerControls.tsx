@@ -270,7 +270,7 @@ export function PlayerControls({
 
           {/* Thumb */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
             style={{ left: `calc(${progress}% - 7px)` }}
           />
 

@@ -83,9 +83,9 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               variant="outline"
               size="icon"
               className={cn(
-                'border-border bg-secondary/50 hover:bg-secondary',
+                'w-10 h-10 rounded-full border-border bg-secondary/50 hover:bg-secondary',
                 rating === 1
-                  ? 'text-primary border-primary/50'
+                  ? 'text-white fill-current border-white/50'
                   : 'text-foreground',
               )}
               aria-label="Like"
@@ -107,9 +107,9 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               variant="outline"
               size="icon"
               className={cn(
-                'border-border bg-secondary/50 hover:bg-secondary',
+                'w-10 h-10 rounded-full border-border bg-secondary/50 hover:bg-secondary',
                 rating === -1
-                  ? 'text-primary border-primary/50'
+                  ? 'text-white fill-current border-white/50'
                   : 'text-foreground',
               )}
               aria-label="Dislike"

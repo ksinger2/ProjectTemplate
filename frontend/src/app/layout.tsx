@@ -6,6 +6,7 @@ import { MusicPlayerProvider } from "@/providers/MusicPlayerProvider";
 import { NavBar } from "@/components/layout/NavBar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { LayoutShell } from "@/components/layout/LayoutShell";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,10 +45,9 @@ export default function RootLayout({
         <AuthProvider>
           <MusicPlayerProvider>
             <TooltipProvider>
-              <NavBar />
-              <main className="flex-1 pb-14 md:pb-0">{children}</main>
-              <MiniPlayer />
-              <MobileNav />
+              <LayoutShell>
+                {children}
+              </LayoutShell>
             </TooltipProvider>
           </MusicPlayerProvider>
         </AuthProvider>

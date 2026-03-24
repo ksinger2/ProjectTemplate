@@ -87,6 +87,7 @@ export default function AdminPage() {
   const [editingMedia, setEditingMedia] = useState<Media | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [editForm, setEditForm] = useState<EditFormData>({
     title: '',
     description: '',
@@ -140,6 +141,7 @@ export default function AdminPage() {
 
   const openEdit = (item: Media) => {
     setEditingMedia(item);
+    setSaveError('');
     setEditForm({
       title: item.title,
       description: item.description || '',
@@ -153,6 +155,7 @@ export default function AdminPage() {
   const handleSave = async () => {
     if (!editingMedia) return;
     setIsSaving(true);
+    setSaveError('');
 
     const payload: Record<string, unknown> = {
       title: editForm.title,
@@ -179,9 +182,11 @@ export default function AdminPage() {
         );
         setEditOpen(false);
         setEditingMedia(null);
+      } else {
+        setSaveError(json.error || 'Failed to save changes. Please try again.');
       }
     } catch {
-      // silently fail
+      setSaveError('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -197,7 +202,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">Admin: Media Library</h1>
@@ -428,21 +433,28 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditOpen(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !editForm.title.trim()}
-            >
-              {isSaving && <Loader2 className="size-4 animate-spin" />}
-              Save
-            </Button>
+          <DialogFooter className="flex-col items-stretch gap-2">
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditOpen(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !editForm.title.trim()}
+              >
+                {isSaving && <Loader2 className="size-4 animate-spin" />}
+                Save
+              </Button>
+            </div>
+            {saveError && (
+              <p className="text-sm text-destructive text-right" role="alert">
+                {saveError}
+              </p>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

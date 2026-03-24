@@ -17,7 +17,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Mobile navigation"
     >
@@ -40,10 +40,10 @@ export function MobileNav() {
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={label}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-6 w-6" />
                 <span
                   className={cn(
-                    'text-[10px] font-medium leading-none',
+                    'text-xs font-medium leading-none',
                     isActive ? 'text-foreground' : 'text-muted-foreground',
                   )}
                 >

@@ -108,7 +108,7 @@
   --muted-foreground: #94a3b8;
   --accent: #1a3558;
   --accent-foreground: #f1f5f9;
-  --destructive: #ef4444;
+  --destructive: #e50914;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.15);
   --ring: #FFD100;
@@ -136,5 +136,12 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

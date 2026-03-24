@@ -25,7 +25,7 @@ export function NavBar() {
   const [scrolled, setScrolled] = useState(false);
 
   const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 50);
+    setScrolled(window.scrollY > 100);
   }, []);
 
   useEffect(() => {
@@ -37,9 +37,9 @@ export function NavBar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full transition-colors duration-200',
+        'sticky top-0 z-20 w-full transition-colors duration-200',
         scrolled
-          ? 'bg-bb-nav/95 backdrop-blur-xl border-b border-border'
+          ? 'bg-bb-background/80 backdrop-blur-[20px] border-b border-border'
           : 'bg-transparent',
       )}
     >
@@ -93,7 +93,7 @@ export function NavBar() {
                 <Link
                   href="/search"
                   className={cn(
-                    'inline-flex items-center justify-center size-8 rounded-lg',
+                    'inline-flex items-center justify-center size-11 rounded-lg',
                     'text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   )}

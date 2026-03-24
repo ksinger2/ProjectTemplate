@@ -141,7 +141,7 @@ export default function SearchPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Search bar */}
         <SearchBar onSearch={handleSearch} defaultExpanded className="w-full" />
 
