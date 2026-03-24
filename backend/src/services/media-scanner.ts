@@ -7,9 +7,10 @@ import { eq } from 'drizzle-orm';
 
 // ---- Configuration ----
 
-const MEDIA_PATH = path.resolve(__dirname, '../../../', process.env.MEDIA_PATH || '../media');
-const SUBTITLES_PATH = path.resolve(__dirname, '../../../', process.env.SUBTITLES_PATH || '../subtitles');
-const DATA_PATH = path.resolve(__dirname, '../../../', process.env.DATA_PATH || '../data');
+const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const MEDIA_PATH = process.env.MEDIA_PATH ? path.resolve(process.env.MEDIA_PATH) : path.join(PROJECT_ROOT, 'media');
+const SUBTITLES_PATH = process.env.SUBTITLES_PATH ? path.resolve(process.env.SUBTITLES_PATH) : path.join(PROJECT_ROOT, 'subtitles');
+const DATA_PATH = process.env.DATA_PATH ? path.resolve(process.env.DATA_PATH) : path.join(PROJECT_ROOT, 'data');
 const THUMBNAILS_PATH = path.join(DATA_PATH, 'thumbnails');
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv', '.avi', '.webm', '.mov', '.m4v', '.wmv', '.flv']);
@@ -274,7 +275,16 @@ function findGames(gamesDir: string): Array<{ name: string; dirPath: string }> {
 // ---- FTS helpers ----
 
 function ensureFtsTable(): void {
-  // Create FTS5 virtual table if it doesn't exist
+  // Drop the content-sync FTS table from migration (incompatible with UUID primary keys)
+  // and recreate as standalone table with media_id column
+  const tableInfo = sqlite.prepare(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='media_fts'"
+  ).get() as { sql: string } | undefined;
+
+  if (tableInfo && !tableInfo.sql?.includes('media_id')) {
+    sqlite.exec('DROP TABLE IF EXISTS media_fts');
+  }
+
   sqlite.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS media_fts USING fts5(
       media_id UNINDEXED,
