@@ -72,6 +72,9 @@ export default function LoginPage() {
               BLOCKBUSTER
             </h1>
           </div>
+          <h2 className="text-xl font-semibold text-foreground">
+            Welcome to Blockbuster
+          </h2>
           <p className="text-muted-foreground text-sm">
             Be Kind, Rewind.
           </p>
@@ -103,7 +106,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             className="w-full h-11 text-base font-semibold"
-            disabled={isLoading}
+            disabled={isLoading || !email.trim()}
           >
             {isLoading && <Loader2 className="size-4 animate-spin" />}
             Sign In

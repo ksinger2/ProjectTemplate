@@ -8,7 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-// ---- POST /api/ratings — Rate a media item ----
+// ---- POST /api/ratings — Upsert a rating (like/dislike) ----
 
 router.post('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
@@ -21,9 +21,10 @@ router.post('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Validate rating value
-    if (rating !== 'up' && rating !== 'down' && rating !== null) {
-      res.status(400).json({ success: false, error: "rating must be 'up', 'down', or null" });
+    // Accept 'like', 'dislike', 'up', 'down' for flexibility
+    const validRatings = ['like', 'dislike', 'up', 'down'];
+    if (!validRatings.includes(rating)) {
+      res.status(400).json({ success: false, error: "rating must be 'like' or 'dislike'" });
       return;
     }
 
@@ -34,8 +35,8 @@ router.post('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Convert rating to numeric: up = 1, down = -1, null = remove
-    const ratingValue = rating === 'up' ? 1 : rating === 'down' ? -1 : null;
+    // Convert to numeric: like/up = 1, dislike/down = -1
+    const ratingValue = (rating === 'like' || rating === 'up') ? 1 : -1;
 
     // Find existing rating
     const existing = db
@@ -46,15 +47,6 @@ router.post('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
         eq(schema.userRatings.mediaId, mediaId),
       ))
       .get();
-
-    if (ratingValue === null) {
-      // Remove rating
-      if (existing) {
-        db.delete(schema.userRatings).where(eq(schema.userRatings.id, existing.id)).run();
-      }
-      res.json({ success: true, data: { mediaId, rating: 0 } });
-      return;
-    }
 
     if (existing) {
       // Update existing rating
@@ -73,10 +65,43 @@ router.post('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
       }).run();
     }
 
-    res.json({ success: true, data: { mediaId, rating: ratingValue } });
+    res.json({
+      success: true,
+      data: {
+        mediaId,
+        rating: ratingValue === 1 ? 'like' : 'dislike',
+        ratingValue,
+      },
+    });
   } catch (err: any) {
     console.error('[ratings POST] Error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to save rating' });
+  }
+});
+
+// ---- GET /api/ratings — Get all ratings for the current user ----
+
+router.get('/ratings', authMiddleware, (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const rows = db
+      .select()
+      .from(schema.userRatings)
+      .where(eq(schema.userRatings.userId, userId))
+      .all();
+
+    const data = rows.map((r) => ({
+      mediaId: r.mediaId,
+      rating: r.rating === 1 ? 'like' : 'dislike',
+      ratingValue: r.rating,
+      createdAt: r.createdAt,
+    }));
+
+    res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[ratings GET] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch ratings' });
   }
 });
 
@@ -96,13 +121,49 @@ router.get('/ratings/:mediaId', authMiddleware, (req: AuthRequest, res: Response
       ))
       .get();
 
+    if (!existing) {
+      res.json({ success: true, data: { mediaId, rating: null, ratingValue: 0 } });
+      return;
+    }
+
     res.json({
       success: true,
-      data: { mediaId, rating: existing ? existing.rating : 0 },
+      data: {
+        mediaId,
+        rating: existing.rating === 1 ? 'like' : 'dislike',
+        ratingValue: existing.rating,
+      },
     });
   } catch (err: any) {
-    console.error('[ratings GET] Error:', err.message);
+    console.error('[ratings GET :mediaId] Error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to fetch rating' });
+  }
+});
+
+// ---- DELETE /api/ratings/:mediaId — Remove a rating ----
+
+router.delete('/ratings/:mediaId', authMiddleware, (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const mediaId = req.params.mediaId as string;
+
+    const existing = db
+      .select()
+      .from(schema.userRatings)
+      .where(and(
+        eq(schema.userRatings.userId, userId),
+        eq(schema.userRatings.mediaId, mediaId),
+      ))
+      .get();
+
+    if (existing) {
+      db.delete(schema.userRatings).where(eq(schema.userRatings.id, existing.id)).run();
+    }
+
+    res.json({ success: true, data: { mediaId, rating: null, ratingValue: 0 } });
+  } catch (err: any) {
+    console.error('[ratings DELETE] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to remove rating' });
   }
 });
 

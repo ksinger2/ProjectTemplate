@@ -50,63 +50,125 @@ function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }
 
-// ---- PATCH /api/users/me — Update display name ----
+// ---- Helper: ensure dev user exists in DB ----
+
+function ensureDevUser(req: AuthRequest): void {
+  const skipAuth = process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production';
+  if (!skipAuth) return;
+
+  const userId = req.user!.id;
+  const existing = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+  if (!existing) {
+    const now = new Date().toISOString();
+    db.insert(schema.users).values({
+      id: userId,
+      email: req.user!.email,
+      displayName: req.user!.displayName,
+      createdAt: now,
+      lastActive: now,
+    }).run();
+  }
+}
+
+// ---- GET /api/users/me — Get current authenticated user ----
+
+router.get('/users/me', authMiddleware, (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    let user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+
+    if (!user) {
+      // In SKIP_AUTH mode, auto-create the dev user in the DB
+      const skipAuth = process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production';
+      if (skipAuth) {
+        ensureDevUser(req);
+        user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+      }
+    }
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        },
+      },
+    });
+  } catch (err: any) {
+    console.error('[users/me] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch user' });
+  }
+});
+
+// ---- PATCH /api/users/me — Update display name and/or avatar URL ----
 
 router.patch('/users/me', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { displayName } = req.body;
+    const { displayName, avatarUrl } = req.body;
+
+    // Must have at least one field to update
+    if (displayName === undefined && avatarUrl === undefined) {
+      res.status(400).json({ success: false, error: 'No fields to update' });
+      return;
+    }
+
+    // Ensure user exists (create in dev mode if needed)
+    ensureDevUser(req);
+    let user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    // Build update payload
+    const updates: Record<string, any> = {};
 
     if (displayName !== undefined) {
       const cleaned = stripHtml(String(displayName)).trim();
-
       if (cleaned.length < 1 || cleaned.length > 50) {
         res.status(400).json({ success: false, error: 'Display name must be 1-50 characters' });
         return;
       }
+      updates.displayName = cleaned;
+    }
 
-      // Ensure user exists (create in dev mode if needed)
-      let user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
-      if (!user) {
-        const skipAuth = process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production';
-        if (skipAuth) {
-          db.insert(schema.users).values({
-            id: userId,
-            email: req.user!.email,
-            displayName: cleaned,
-            createdAt: new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-          }).run();
-          user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
-        }
-      }
-
-      if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+    if (avatarUrl !== undefined) {
+      if (avatarUrl !== null && typeof avatarUrl !== 'string') {
+        res.status(400).json({ success: false, error: 'avatarUrl must be a string or null' });
         return;
       }
-
-      db.update(schema.users)
-        .set({ displayName: cleaned })
-        .where(eq(schema.users.id, userId))
-        .run();
-
-      const updated = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
-
-      res.json({
-        success: true,
-        data: {
-          user: {
-            id: updated!.id,
-            email: updated!.email,
-            displayName: updated!.displayName,
-            avatarUrl: updated!.avatarUrl,
-          },
-        },
-      });
-    } else {
-      res.status(400).json({ success: false, error: 'No fields to update' });
+      updates.avatarUrl = avatarUrl;
     }
+
+    db.update(schema.users)
+      .set(updates)
+      .where(eq(schema.users.id, userId))
+      .run();
+
+    const updated = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: updated!.id,
+          email: updated!.email,
+          displayName: updated!.displayName,
+          avatarUrl: updated!.avatarUrl,
+        },
+      },
+    });
   } catch (err: any) {
     console.error('[users/me PATCH] Error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to update profile' });
@@ -139,6 +201,9 @@ router.post(
       try {
         const userId = req.user!.id;
         const avatarUrl = `/api/users/${userId}/avatar`;
+
+        // Ensure user exists
+        ensureDevUser(req as AuthRequest);
 
         // Update user record
         db.update(schema.users)

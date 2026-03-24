@@ -10,6 +10,18 @@ import { authLimiter } from '../middleware/rate-limit';
 
 const router = Router();
 
+// Cookie options helper
+function cookieOpts(maxAgeMs: number) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/api',
+    maxAge: maxAgeMs,
+  };
+}
+
 // ---- POST /api/auth/login — Authenticate user ----
 
 router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
@@ -29,13 +41,11 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const skipAuth = process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production';
-
     // Look up or auto-create user
     let user = db.select().from(schema.users).where(eq(schema.users.email, emailTrimmed)).get();
 
-    if (!user && skipAuth) {
-      // In dev mode with SKIP_AUTH, auto-create the user
+    if (!user) {
+      // Auto-create user on first login
       const newId = crypto.randomUUID();
       const now = new Date().toISOString();
       db.insert(schema.users).values({
@@ -49,8 +59,7 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
     }
 
     if (!user) {
-      // Generic message to prevent account enumeration
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+      res.status(500).json({ success: false, error: 'Failed to create user' });
       return;
     }
 
@@ -60,32 +69,35 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
       .where(eq(schema.users.id, user.id))
       .run();
 
-    // Issue JWT
+    // Issue tokens
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       res.status(500).json({ success: false, error: 'Server configuration error' });
       return;
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-      },
+    const tokenPayload = {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+    };
+
+    // Access token: 1 hour
+    const accessToken = jwt.sign(tokenPayload, secret, {
+      algorithm: 'HS256',
+      expiresIn: '1h',
+    });
+
+    // Refresh token: 7 days (contains only user id)
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh' },
       secret,
-      { algorithm: 'HS256', expiresIn: '1h' }
+      { algorithm: 'HS256', expiresIn: '7d' }
     );
 
-    // Set httpOnly cookie
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/api',
-      maxAge: 3600000, // 1 hour
-    });
+    // Set httpOnly cookies
+    res.cookie('token', accessToken, cookieOpts(3600000)); // 1 hour
+    res.cookie('refreshToken', refreshToken, cookieOpts(7 * 24 * 3600000)); // 7 days
 
     res.json({
       success: true,
@@ -107,44 +119,82 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
 // ---- POST /api/auth/logout — Clear auth cookies ----
 
 router.post('/auth/logout', (req: AuthRequest, res: Response) => {
-  res.clearCookie('token', {
+  const clearOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'strict' as const,
     path: '/api',
-  });
+  };
+
+  res.clearCookie('token', clearOpts);
+  res.clearCookie('refreshToken', clearOpts);
 
   res.json({ success: true, data: { message: 'Logged out' } });
 });
 
-// ---- GET /api/users/me — Get current authenticated user ----
+// ---- POST /api/auth/refresh — Issue new access token from refresh token ----
 
-router.get('/users/me', authMiddleware, (req: AuthRequest, res: Response) => {
+router.post('/auth/refresh', (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const refreshToken = req.cookies?.refreshToken as string | undefined;
 
-    const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
-
-    if (!user) {
-      // In SKIP_AUTH mode, user may not exist in DB yet — return the dev user
-      const skipAuth = process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV !== 'production';
-      if (skipAuth) {
-        res.json({
-          success: true,
-          data: {
-            user: {
-              id: req.user!.id,
-              email: req.user!.email,
-              displayName: req.user!.displayName,
-              avatarUrl: null,
-            },
-          },
-        });
-        return;
-      }
-      res.status(404).json({ success: false, error: 'User not found' });
+    if (!refreshToken) {
+      res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Refresh token required.',
+        },
+      });
       return;
     }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      res.status(500).json({ success: false, error: 'Server configuration error' });
+      return;
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, secret, { algorithms: ['HS256'] }) as {
+      id: string;
+      type?: string;
+    };
+
+    if (decoded.type !== 'refresh') {
+      res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid token type.',
+        },
+      });
+      return;
+    }
+
+    // Look up user
+    const user = db.select().from(schema.users).where(eq(schema.users.id, decoded.id)).get();
+
+    if (!user) {
+      res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not found.',
+        },
+      });
+      return;
+    }
+
+    // Issue new access token
+    const accessToken = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      },
+      secret,
+      { algorithm: 'HS256', expiresIn: '1h' }
+    );
+
+    res.cookie('token', accessToken, cookieOpts(3600000));
 
     res.json({
       success: true,
@@ -158,8 +208,22 @@ router.get('/users/me', authMiddleware, (req: AuthRequest, res: Response) => {
       },
     });
   } catch (err: any) {
-    console.error('[users/me] Error:', err.message);
-    res.status(500).json({ success: false, error: 'Failed to fetch user' });
+    if (err.name === 'TokenExpiredError') {
+      res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Refresh token expired. Please log in again.',
+        },
+      });
+      return;
+    }
+    console.error('[auth/refresh] Error:', err.message);
+    res.status(401).json({
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Invalid refresh token.',
+      },
+    });
   }
 });
 

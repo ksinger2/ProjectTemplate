@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { User, LogOut, Clock, CheckCircle, Layers } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User, LogOut, Clock, CheckCircle, Layers, Camera, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -23,12 +24,100 @@ function StatCard({ icon, value, label }: StatCardProps) {
   );
 }
 
+interface WatchStats {
+  hoursWatched: number;
+  titlesCompleted: number;
+  genresExplored: number;
+}
+
+function formatJoinDate(dateStr: string | undefined): string {
+  if (!dateStr) return 'Unknown';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return 'Unknown';
+  }
+}
+
 export default function ProfilePage() {
-  const [displayName, setDisplayName] = useState('Guest User');
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [stats, setStats] = useState<WatchStats>({
+    hoursWatched: 0,
+    titlesCompleted: 0,
+    genresExplored: 0,
+  });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const email = 'guest@blockbuster.local';
+  // Sync display name from user
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || '');
+      setAvatarUrl(user.avatarUrl || null);
+    }
+  }, [user]);
+
+  // Fetch watch stats
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        // Fetch completed items
+        const completedRes = await fetch('/api/watch-history?status=completed', {
+          credentials: 'include',
+        });
+        // Fetch in-progress items for total hours
+        const inProgressRes = await fetch('/api/watch-history?status=in_progress', {
+          credentials: 'include',
+        });
+
+        let totalSeconds = 0;
+        let titlesCompleted = 0;
+        const genreSet = new Set<string>();
+
+        if (completedRes.ok) {
+          const completedJson = await completedRes.json();
+          if (completedJson.success && Array.isArray(completedJson.data)) {
+            titlesCompleted = completedJson.data.length;
+            for (const entry of completedJson.data) {
+              totalSeconds += entry.positionSeconds || 0;
+              if (entry.media?.genres) {
+                for (const g of entry.media.genres) genreSet.add(g);
+              }
+            }
+          }
+        }
+
+        if (inProgressRes.ok) {
+          const inProgressJson = await inProgressRes.json();
+          if (inProgressJson.success && Array.isArray(inProgressJson.data)) {
+            for (const entry of inProgressJson.data) {
+              totalSeconds += entry.positionSeconds || 0;
+              if (entry.media?.genres) {
+                for (const g of entry.media.genres) genreSet.add(g);
+              }
+            }
+          }
+        }
+
+        setStats({
+          hoursWatched: Math.round((totalSeconds / 3600) * 10) / 10,
+          titlesCompleted,
+          genresExplored: genreSet.size,
+        });
+      } catch {
+        // Keep defaults
+      }
+    }
+
+    if (user) fetchStats();
+  }, [user]);
 
   const handleSave = async () => {
     if (!displayName.trim()) return;
@@ -39,13 +128,15 @@ export default function ProfilePage() {
       const res = await fetch('/api/users/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ displayName: displayName.trim() }),
       });
 
       if (res.ok) {
         setSaveMessage('Profile updated');
       } else {
-        setSaveMessage('Failed to save. Try again.');
+        const json = await res.json().catch(() => null);
+        setSaveMessage(json?.error || 'Failed to save. Try again.');
       }
     } catch {
       setSaveMessage('Failed to save. Try again.');
@@ -55,9 +146,48 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSignOut = () => {
-    window.location.href = '/login';
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/users/me/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data?.avatarUrl) {
+          // Add cache-busting param
+          setAvatarUrl(`${json.data.avatarUrl}?t=${Date.now()}`);
+        }
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  }
+
+  if (!user) return null;
+
+  const hasStats = stats.hoursWatched > 0 || stats.titlesCompleted > 0;
 
   return (
     <main className="min-h-screen bg-background">
@@ -71,13 +201,38 @@ export default function ProfilePage() {
             <div
               className={cn(
                 'size-24 rounded-full bg-secondary border-2 border-border',
-                'flex items-center justify-center',
+                'flex items-center justify-center overflow-hidden relative',
               )}
             >
-              <User className="size-10 text-muted-foreground" />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={user.displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="size-10 text-muted-foreground" />
+              )}
             </div>
-            <Button variant="outline" size="sm" disabled>
-              Change photo
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isUploadingAvatar}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isUploadingAvatar ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Camera className="size-4" />
+              )}
+              {isUploadingAvatar ? 'Uploading...' : 'Change photo'}
             </Button>
           </div>
 
@@ -99,10 +254,19 @@ export default function ProfilePage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Email</label>
               <Input
-                value={email}
+                value={user.email}
                 readOnly
                 className="bg-secondary border-border text-muted-foreground cursor-not-allowed"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
+                Member since
+              </label>
+              <p className="text-sm text-foreground">
+                {formatJoinDate(user.createdAt)}
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -113,9 +277,9 @@ export default function ProfilePage() {
                 <span
                   className={cn(
                     'text-sm',
-                    saveMessage.includes('Failed')
+                    saveMessage.includes('Failed') || saveMessage.includes('error')
                       ? 'text-destructive'
-                      : 'text-green-400',
+                      : 'text-[#46d369]',
                   )}
                 >
                   {saveMessage}
@@ -133,23 +297,25 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               icon={<Clock className="size-5" />}
-              value={0}
+              value={stats.hoursWatched}
               label="Hours Watched"
             />
             <StatCard
               icon={<CheckCircle className="size-5" />}
-              value={0}
+              value={stats.titlesCompleted}
               label="Titles Completed"
             />
             <StatCard
               icon={<Layers className="size-5" />}
-              value={0}
+              value={stats.genresExplored}
               label="Genres Explored"
             />
           </div>
-          <p className="text-sm text-muted-foreground text-center">
-            Start watching to see your stats!
-          </p>
+          {!hasStats && (
+            <p className="text-sm text-muted-foreground text-center">
+              Start watching to see your stats!
+            </p>
+          )}
         </div>
 
         <Separator className="bg-border" />
@@ -158,7 +324,7 @@ export default function ProfilePage() {
         <div>
           <Button
             variant="outline"
-            onClick={handleSignOut}
+            onClick={logout}
             className="text-destructive border-destructive/30 hover:bg-destructive/10"
           >
             <LogOut className="size-4" />

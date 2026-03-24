@@ -10,6 +10,7 @@ import watchHistoryRouter from './watch-history';
 import ratingsRouter from './ratings';
 import friendsRouter from './friends';
 import recommendationsRouter from './recommendations';
+import sessionsRouter from './sessions';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use(watchHistoryRouter);
 router.use(ratingsRouter);
 router.use(friendsRouter);
 router.use(recommendationsRouter);
+router.use(sessionsRouter);
 
 export default router;

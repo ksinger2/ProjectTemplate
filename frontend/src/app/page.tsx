@@ -160,13 +160,13 @@ export default function Home() {
         ) : (
           <>
             {/* Continue Watching - first row */}
-            <ContinueWatchingRow />
-
             {user && (
-              <p className="text-muted-foreground text-sm -mt-4">
+              <p className="text-lg font-medium text-foreground">
                 Welcome back, {user.displayName}!
               </p>
             )}
+
+            <ContinueWatchingRow />
 
             <MediaRow
               title="Recently Added"

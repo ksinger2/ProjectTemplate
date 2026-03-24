@@ -7,7 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export interface User {
   id: string;
@@ -35,6 +35,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         const json = await res.json();
         if (!cancelled) {
-          setUser(json.success ? json.data : null);
+          setUser(json.success ? (json.data?.user ?? json.data) : null);
         }
       } catch {
         if (!cancelled) setUser(null);
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const meRes = await fetch('/api/users/me', { credentials: 'include' });
       if (meRes.ok) {
         const meJson = await meRes.json();
-        setUser(meJson.success ? meJson.data : null);
+        setUser(meJson.success ? (meJson.data?.user ?? meJson.data) : null);
       }
     },
     [],
@@ -110,6 +111,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
   };
+
+  // Auto-redirect to /login if not authenticated (except login page)
+  useEffect(() => {
+    if (!isLoading && !user && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [isLoading, user, pathname, router]);
 
   // Show loading screen while checking auth
   if (isLoading) {

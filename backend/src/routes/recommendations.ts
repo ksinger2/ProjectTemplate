@@ -5,6 +5,7 @@ import { schema } from '../db';
 import { eq, and, desc } from 'drizzle-orm';
 import { AuthRequest } from '../types';
 import { authMiddleware } from '../middleware/auth';
+import { getRecommendations, getBecauseYouWatched } from '../services/recommender';
 
 const router = Router();
 
@@ -19,10 +20,24 @@ function parseJsonArray(value: string | null): string[] {
   }
 }
 
-// Helper: compute overlap score between two arrays
-function overlapScore(a: string[], b: string[]): number {
-  const setB = new Set(b.map((s) => s.toLowerCase()));
-  return a.filter((item) => setB.has(item.toLowerCase())).length;
+// Helper: format media row for API response
+function formatMedia(m: any) {
+  return {
+    id: m.id,
+    title: m.title,
+    type: m.type,
+    posterUrl: m.posterUrl,
+    description: m.description,
+    year: m.year,
+    genres: parseJsonArray(m.genres),
+    keywords: parseJsonArray(m.keywords),
+    durationSeconds: m.durationSeconds,
+    filePath: m.filePath,
+    codec: m.codec,
+    resolution: m.resolution,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+  };
 }
 
 // ---- GET /api/recommendations — Personalized recommendations ----
@@ -30,84 +45,11 @@ function overlapScore(a: string[], b: string[]): number {
 router.get('/recommendations', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-
-    // 1. Get user's watch history
-    const watchedItems = db
-      .select()
-      .from(schema.watchHistory)
-      .where(eq(schema.watchHistory.userId, userId))
-      .all();
-
-    const watchedMediaIds = new Set(watchedItems.map((w) => w.mediaId));
-
-    // 2. Get user's liked items (rating = 1)
-    const likedRatings = db
-      .select()
-      .from(schema.userRatings)
-      .where(
-        and(
-          eq(schema.userRatings.userId, userId),
-          eq(schema.userRatings.rating, 1),
-        ),
-      )
-      .all();
-
-    const likedMediaIds = likedRatings.map((r) => r.mediaId);
-
-    // 3. Get all media
-    const allMedia = db.select().from(schema.media).all();
-
-    // Cold start: no history or ratings, return recently added
-    if (watchedItems.length === 0 && likedRatings.length === 0) {
-      const recent = allMedia
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-        .slice(0, 20)
-        .map(formatMedia);
-
-      res.json({ success: true, data: recent });
-      return;
-    }
-
-    // 4. Gather preferred genres and keywords from liked + watched items
-    const preferredGenres: string[] = [];
-    const preferredKeywords: string[] = [];
-
-    for (const m of allMedia) {
-      if (likedMediaIds.includes(m.id) || watchedMediaIds.has(m.id)) {
-        preferredGenres.push(...parseJsonArray(m.genres));
-        preferredKeywords.push(...parseJsonArray(m.keywords));
-      }
-    }
-
-    // 5. Score all unwatched media
-    const scored = allMedia
-      .filter((m) => !watchedMediaIds.has(m.id))
-      .map((m) => {
-        const genres = parseJsonArray(m.genres);
-        const keywords = parseJsonArray(m.keywords);
-
-        const genreScore = overlapScore(genres, preferredGenres) * 3;
-        const keywordScore = overlapScore(keywords, preferredKeywords) * 2;
-
-        // Recency bonus: items added in last 30 days get +1
-        const ageMs =
-          Date.now() - new Date(m.createdAt).getTime();
-        const recencyBonus = ageMs < 30 * 24 * 60 * 60 * 1000 ? 1 : 0;
-
-        const totalScore = genreScore + keywordScore + recencyBonus;
-
-        return { media: m, score: totalScore };
-      })
-      .filter((s) => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 20);
+    const results = getRecommendations(userId);
 
     res.json({
       success: true,
-      data: scored.map((s) => formatMedia(s.media)),
+      data: results,
     });
   } catch (err: any) {
     console.error('[recommendations GET] Error:', err.message);
@@ -126,54 +68,18 @@ router.get(
   (req: AuthRequest, res: Response) => {
     try {
       const userId = req.user!.id;
-      const sourceMediaId = req.params.mediaId;
+      const sourceMediaId = req.params.mediaId as string;
 
-      // Get the source media
-      const sourceMedia = db
-        .select()
-        .from(schema.media)
-        .where(eq(schema.media.id, sourceMediaId))
-        .get();
+      const results = getBecauseYouWatched(userId, sourceMediaId);
 
-      if (!sourceMedia) {
+      if (results === null) {
         res.status(404).json({ success: false, error: 'Media not found' });
         return;
       }
 
-      const sourceGenres = parseJsonArray(sourceMedia.genres);
-      const sourceKeywords = parseJsonArray(sourceMedia.keywords);
-
-      // Get watched items to exclude
-      const watchedItems = db
-        .select()
-        .from(schema.watchHistory)
-        .where(eq(schema.watchHistory.userId, userId))
-        .all();
-      const watchedMediaIds = new Set(watchedItems.map((w) => w.mediaId));
-
-      // Get all media and score by similarity
-      const allMedia = db.select().from(schema.media).all();
-
-      const scored = allMedia
-        .filter(
-          (m) => m.id !== sourceMediaId && !watchedMediaIds.has(m.id),
-        )
-        .map((m) => {
-          const genres = parseJsonArray(m.genres);
-          const keywords = parseJsonArray(m.keywords);
-
-          const genreScore = overlapScore(genres, sourceGenres) * 3;
-          const keywordScore = overlapScore(keywords, sourceKeywords) * 2;
-
-          return { media: m, score: genreScore + keywordScore };
-        })
-        .filter((s) => s.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 20);
-
       res.json({
         success: true,
-        data: scored.map((s) => formatMedia(s.media)),
+        data: results,
       });
     } catch (err: any) {
       console.error('[recommendations because] Error:', err.message);
@@ -320,25 +226,5 @@ router.get(
     }
   },
 );
-
-// Helper: format media row for API response
-function formatMedia(m: any) {
-  return {
-    id: m.id,
-    title: m.title,
-    type: m.type,
-    posterUrl: m.posterUrl,
-    description: m.description,
-    year: m.year,
-    genres: parseJsonArray(m.genres),
-    keywords: parseJsonArray(m.keywords),
-    durationSeconds: m.durationSeconds,
-    filePath: m.filePath,
-    codec: m.codec,
-    resolution: m.resolution,
-    createdAt: m.createdAt,
-    updatedAt: m.updatedAt,
-  };
-}
 
 export default router;
