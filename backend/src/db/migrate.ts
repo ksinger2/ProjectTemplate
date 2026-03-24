@@ -143,6 +143,10 @@ for (const stmt of statements) {
   db.exec(stmt + ';');
 }
 
+// Add intro skip columns to episodes (idempotent)
+try { db.exec('ALTER TABLE episodes ADD COLUMN intro_start INTEGER'); } catch {}
+try { db.exec('ALTER TABLE episodes ADD COLUMN intro_end INTEGER'); } catch {}
+
 console.log('Database migrated successfully');
 console.log(`Database path: ${dbPath}`);
 

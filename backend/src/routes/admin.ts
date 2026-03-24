@@ -128,4 +128,49 @@ router.patch('/admin/media/:id', authMiddleware, (req: Request, res: Response) =
   }
 });
 
+// ---- PATCH /api/admin/episodes/:id — Update episode intro markers ----
+
+router.patch('/admin/episodes/:id', authMiddleware, (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { introStart, introEnd } = req.body;
+
+    // Verify episode exists
+    const existing = db.select().from(schema.episodes).where(eq(schema.episodes.id, id)).get();
+
+    if (!existing) {
+      res.status(404).json({ success: false, error: 'Episode not found' });
+      return;
+    }
+
+    // Validate types if provided
+    if (introStart !== undefined && (typeof introStart !== 'number' || introStart < 0)) {
+      res.status(400).json({ success: false, error: 'introStart must be a non-negative integer' });
+      return;
+    }
+    if (introEnd !== undefined && (typeof introEnd !== 'number' || introEnd < 0)) {
+      res.status(400).json({ success: false, error: 'introEnd must be a non-negative integer' });
+      return;
+    }
+
+    // Build update object with only provided fields
+    const updates: Record<string, any> = {};
+    if (introStart !== undefined) updates.introStart = introStart;
+    if (introEnd !== undefined) updates.introEnd = introEnd;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: true, data: existing });
+      return;
+    }
+
+    db.update(schema.episodes).set(updates).where(eq(schema.episodes.id, id)).run();
+
+    const updatedRow = db.select().from(schema.episodes).where(eq(schema.episodes.id, id)).get();
+    res.json({ success: true, data: updatedRow });
+  } catch (err: any) {
+    console.error('[admin/episodes/:id] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to update episode' });
+  }
+});
+
 export default router;

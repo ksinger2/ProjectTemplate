@@ -35,6 +35,8 @@ export const episodes = sqliteTable('episodes', {
   description: text('description'),
   filePath: text('file_path').notNull(),
   durationSeconds: integer('duration_seconds'),
+  introStart: integer('intro_start'),
+  introEnd: integer('intro_end'),
 });
 
 export const subtitles = sqliteTable('subtitles', {

@@ -11,6 +11,7 @@ import ratingsRouter from './ratings';
 import friendsRouter from './friends';
 import recommendationsRouter from './recommendations';
 import sessionsRouter from './sessions';
+import statsRouter from './stats';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use(ratingsRouter);
 router.use(friendsRouter);
 router.use(recommendationsRouter);
 router.use(sessionsRouter);
+router.use(statsRouter);
 
 export default router;
