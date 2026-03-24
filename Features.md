@@ -24,16 +24,17 @@
 - [x] Admin metadata UI (2026-03-23)
 - [x] Responsive layout (mobile + desktop) (2026-03-23)
 
-## Phase 3: Video Player & Streaming — Planned
-- [ ] Signed media URLs (HMAC-SHA256)
-- [ ] HTTP 206 range-request streaming
-- [ ] Plyr.io + HLS.js player
-- [ ] Blob URL rendering
-- [ ] Subtitle loading (SRT→VTT conversion)
-- [ ] Video modes (fullscreen, half-screen, PiP)
-- [ ] Anti-download protections
-- [ ] Music player + mini-player
-- [ ] Episode navigation (season/episode select)
+## Phase 3: Video Player & Streaming — Complete
+- [x] Signed media URLs (HMAC-SHA256) (2026-03-23)
+- [x] HTTP 206 range-request streaming (2026-03-23)
+- [x] HLS.js player with native fallback (2026-03-24)
+- [x] Subtitle loading (SRT→VTT conversion) (2026-03-24)
+- [x] Video modes (fullscreen, half-screen, PiP) (2026-03-24)
+- [x] Anti-download protections (2026-03-23)
+- [x] Music player + mini-player (2026-03-24)
+- [x] Episode navigation with auto-advance (2026-03-24)
+- [x] Keyboard shortcut help overlay (2026-03-24)
+- [x] Stream access logging (2026-03-24)
 
 ## Phase 4: Auth & User System — Planned
 - [ ] Email-based login (JWT + Cloudflare Access stub)
