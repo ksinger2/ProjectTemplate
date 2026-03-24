@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { BlockbusterLogo } from '@/components/brand/BlockbusterLogo';
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -67,9 +68,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center text-center">
-          <div className="bg-bb-blue rounded-lg px-8 py-4 shadow-2xl border-2 border-primary/30 mb-6">
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-primary">
-              BLOCKBUSTER
+          <div className="mb-6">
+            <h1>
+              <BlockbusterLogo width={240} height={56} />
             </h1>
           </div>
           <h2 className="text-xl font-semibold text-foreground">

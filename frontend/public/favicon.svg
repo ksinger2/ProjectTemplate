@@ -1,0 +1,9 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="bb-fav">
+      <path d="M 4 0 H 26 L 29 3 L 26 6 L 30 9 L 25 12 L 29 15 L 26 18 L 30 21 L 25 24 L 29 27 L 26 30 L 29 32 H 4 Q 0 32 0 28 V 4 Q 0 0 4 0 Z" />
+    </clipPath>
+  </defs>
+  <rect width="32" height="32" fill="#0033A0" clip-path="url(#bb-fav)" />
+  <text x="13" y="23" fill="#FFD100" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="20" text-anchor="middle">B</text>
+</svg>

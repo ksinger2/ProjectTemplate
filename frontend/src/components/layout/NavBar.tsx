@@ -12,6 +12,7 @@ import {
   TooltipContent,
 } from '@/components/ui/tooltip';
 import { RecommendationsInbox } from '@/components/social/RecommendationsInbox';
+import { BlockbusterLogo } from '@/components/brand/BlockbusterLogo';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
@@ -54,11 +55,16 @@ export function NavBar() {
           className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
           aria-label="Blockbuster home"
         >
-          <span className="inline-flex items-center rounded-md bg-bb-blue px-3 py-1.5 shadow-md">
-            <span className="text-lg md:text-xl font-extrabold tracking-tight text-bb-accent">
-              BLOCKBUSTER
-            </span>
-          </span>
+          <BlockbusterLogo
+            width={140}
+            height={36}
+            className="hidden md:block"
+          />
+          <BlockbusterLogo
+            width={120}
+            height={30}
+            className="block md:hidden"
+          />
         </Link>
 
         {/* Desktop nav links */}

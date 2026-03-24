@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "Blockbuster — Your Personal Video Store",
   description: "Private media streaming platform inspired by the classic Blockbuster Video experience",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon-192.png",
+  },
   other: {
     "theme-color": "#FFD100",
   },
