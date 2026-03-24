@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface StatsData {
   totalHours: number;
-  totalHoursThisMonth: number;
+  monthHours: number;
   titlesCompleted: number;
   topGenres: { genre: string; hours: number }[];
   mostWatched: {
@@ -32,7 +32,7 @@ interface StatsData {
     evening: number;
     night: number;
   };
-  topTen: {
+  top10: {
     id: string;
     title: string;
     posterUrl: string | null;
@@ -117,7 +117,7 @@ export default function StatsPage() {
     stats &&
     stats.totalHours === 0 &&
     stats.titlesCompleted === 0 &&
-    stats.topTen.length === 0;
+    stats.top10.length === 0;
 
   // Find max genre hours for bar scaling
   const maxGenreHours = stats?.topGenres?.reduce((m, g) => Math.max(m, g.hours), 0) ?? 1;
@@ -197,7 +197,7 @@ export default function StatsPage() {
                   {formatHours(stats.totalHours)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatHours(stats.totalHoursThisMonth)} this month
+                  {formatHours(stats.monthHours)} this month
                 </p>
               </div>
 
@@ -343,11 +343,11 @@ export default function StatsPage() {
                   <BarChart3 className="size-5" />
                   <span className="text-sm font-medium">Your Top 10</span>
                 </div>
-                {stats.topTen.length === 0 ? (
+                {stats.top10.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No data yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {stats.topTen.map((item, idx) => (
+                    {stats.top10.map((item, idx) => (
                       <Link
                         key={item.id}
                         href={`/media/${item.id}`}
