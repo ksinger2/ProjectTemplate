@@ -1,5 +1,6 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
+import { setupWatchSessionHandlers } from './services/watch-session';
 
 export function setupSocket(httpServer: HttpServer, frontendUrl: string): SocketServer {
   const io = new SocketServer(httpServer, {
@@ -10,13 +11,8 @@ export function setupSocket(httpServer: HttpServer, frontendUrl: string): Socket
     },
   });
 
-  io.on('connection', (socket) => {
-    console.log(`[socket] Client connected: ${socket.id}`);
-
-    socket.on('disconnect', (reason) => {
-      console.log(`[socket] Client disconnected: ${socket.id} (${reason})`);
-    });
-  });
+  // Register watch session handlers (auth middleware + event handlers)
+  setupWatchSessionHandlers(io);
 
   return io;
 }

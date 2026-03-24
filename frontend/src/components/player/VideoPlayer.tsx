@@ -1,0 +1,384 @@
+'use client';
+
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { PlayerControls } from './PlayerControls';
+import type { SubtitleTrack } from './SubtitleSelector';
+
+interface VideoPlayerProps {
+  src: string;
+  title: string;
+  subtitles?: SubtitleTrack[];
+  initialPosition?: number;
+  onPositionUpdate?: (seconds: number) => void;
+  onEnded?: () => void;
+  onBack?: () => void;
+}
+
+export function VideoPlayer({
+  src,
+  title,
+  subtitles = [],
+  initialPosition = 0,
+  onPositionUpdate,
+  onEnded,
+  onBack,
+}: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const positionTimerRef = useRef<ReturnType<typeof setInterval>>();
+  const doubleTapTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
+  const hasSetInitialPosition = useRef(false);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [buffered, setBuffered] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [activeSubtitleId, setActiveSubtitleId] = useState<string | null>(null);
+
+  // Show controls and start hide timer
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      if (videoRef.current && !videoRef.current.paused) {
+        setControlsVisible(false);
+      }
+    }, 3000);
+  }, []);
+
+  // Play/Pause
+  const handlePlayPause = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, []);
+
+  // Seek
+  const handleSeek = useCallback((time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = time;
+  }, []);
+
+  // Skip back/forward
+  const handleSkipBack = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, video.currentTime - 10);
+  }, []);
+
+  const handleSkipForward = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+  }, []);
+
+  // Volume
+  const handleVolumeChange = useCallback((v: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = v;
+    setVolume(v);
+    if (v > 0 && video.muted) {
+      video.muted = false;
+      setIsMuted(false);
+    }
+  }, []);
+
+  const handleMuteToggle = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  }, []);
+
+  // Fullscreen
+  const handleFullscreenToggle = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      container.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
+  // Subtitle change
+  const handleSubtitleChange = useCallback((id: string | null) => {
+    const video = videoRef.current;
+    if (!video) return;
+    setActiveSubtitleId(id);
+    // Toggle track visibility
+    for (let i = 0; i < video.textTracks.length; i++) {
+      const track = video.textTracks[i];
+      const trackId = subtitles[i]?.id;
+      track.mode = trackId === id ? 'showing' : 'hidden';
+    }
+  }, [subtitles]);
+
+  // Video event handlers
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const onPlay = () => { setIsPlaying(true); showControls(); };
+    const onPause = () => { setIsPlaying(false); setControlsVisible(true); };
+    const onTimeUpdate = () => setCurrentTime(video.currentTime);
+    const onDurationChange = () => setDuration(video.duration || 0);
+    const onProgress = () => {
+      if (video.buffered.length > 0) {
+        setBuffered(video.buffered.end(video.buffered.length - 1));
+      }
+    };
+    const onWaiting = () => setIsBuffering(true);
+    const onCanPlay = () => setIsBuffering(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setControlsVisible(true);
+    };
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    const onLoadedMetadata = () => {
+      setDuration(video.duration || 0);
+      if (initialPosition > 0 && !hasSetInitialPosition.current) {
+        video.currentTime = initialPosition;
+        hasSetInitialPosition.current = true;
+      }
+    };
+
+    video.addEventListener('play', onPlay);
+    video.addEventListener('pause', onPause);
+    video.addEventListener('timeupdate', onTimeUpdate);
+    video.addEventListener('durationchange', onDurationChange);
+    video.addEventListener('progress', onProgress);
+    video.addEventListener('waiting', onWaiting);
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('ended', onEnded);
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+
+    return () => {
+      video.removeEventListener('play', onPlay);
+      video.removeEventListener('pause', onPause);
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('durationchange', onDurationChange);
+      video.removeEventListener('progress', onProgress);
+      video.removeEventListener('waiting', onWaiting);
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('ended', onEnded);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+    };
+  }, [initialPosition, showControls]);
+
+  // Position update interval (every 10 seconds)
+  useEffect(() => {
+    positionTimerRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (video && !video.paused && video.currentTime > 0) {
+        onPositionUpdate?.(video.currentTime);
+      }
+    }, 10000);
+    return () => {
+      if (positionTimerRef.current) clearInterval(positionTimerRef.current);
+    };
+  }, [onPositionUpdate]);
+
+  // Ended callback
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const handler = () => onEnded?.();
+    video.addEventListener('ended', handler);
+    return () => video.removeEventListener('ended', handler);
+  }, [onEnded]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Don't capture if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          handlePlayPause();
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          handleFullscreenToggle();
+          break;
+        case 'm':
+        case 'M':
+          e.preventDefault();
+          handleMuteToggle();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          handleSkipBack();
+          showControls();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          handleSkipForward();
+          showControls();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          handleVolumeChange(Math.min(1, volume + 0.1));
+          showControls();
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          handleVolumeChange(Math.max(0, volume - 0.1));
+          showControls();
+          break;
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePlayPause, handleFullscreenToggle, handleMuteToggle, handleSkipBack, handleSkipForward, handleVolumeChange, volume, showControls]);
+
+  // Anti-download: block right-click and Ctrl+S
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const preventContext = (e: Event) => e.preventDefault();
+    const preventSave = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+      }
+    };
+
+    container.addEventListener('contextmenu', preventContext);
+    window.addEventListener('keydown', preventSave);
+    return () => {
+      container.removeEventListener('contextmenu', preventContext);
+      window.removeEventListener('keydown', preventSave);
+    };
+  }, []);
+
+  // Handle mouse movement for controls visibility
+  const handleMouseMove = useCallback(() => {
+    showControls();
+  }, [showControls]);
+
+  // Touch: tap to show/hide, double-tap sides to skip
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      // Don't handle if tapping on controls
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('[role="slider"]') || target.closest('[role="listbox"]')) return;
+
+      const now = Date.now();
+      const touch = e.changedTouches[0];
+      const container = containerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const tapGap = now - lastTapRef.current.time;
+
+      if (tapGap < 300 && Math.abs(x - lastTapRef.current.x) < 50) {
+        // Double tap
+        if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+        const third = rect.width / 3;
+        if (x < third) {
+          handleSkipBack();
+        } else if (x > third * 2) {
+          handleSkipForward();
+        }
+        lastTapRef.current = { time: 0, x: 0 };
+      } else {
+        // Single tap - wait to see if double
+        lastTapRef.current = { time: now, x };
+        doubleTapTimerRef.current = setTimeout(() => {
+          setControlsVisible((v) => !v);
+        }, 300);
+      }
+    },
+    [handleSkipBack, handleSkipForward],
+  );
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full h-full bg-black select-none"
+      style={{ cursor: controlsVisible ? 'default' : 'none' }}
+      onMouseMove={handleMouseMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        className="absolute inset-0 w-full h-full object-contain"
+        playsInline
+        controlsList="nodownload"
+        disablePictureInPicture={false}
+        preload="auto"
+        onClick={handlePlayPause}
+      >
+        {subtitles.map((sub) => (
+          <track
+            key={sub.id}
+            kind="subtitles"
+            label={sub.label}
+            srcLang={sub.language}
+            src={sub.src}
+          />
+        ))}
+      </video>
+
+      {/* Controls overlay */}
+      <PlayerControls
+        title={title}
+        isPlaying={isPlaying}
+        isBuffering={isBuffering}
+        currentTime={currentTime}
+        duration={duration}
+        buffered={buffered}
+        volume={volume}
+        isMuted={isMuted}
+        isFullscreen={isFullscreen}
+        subtitles={subtitles}
+        activeSubtitleId={activeSubtitleId}
+        visible={controlsVisible}
+        onPlayPause={handlePlayPause}
+        onSeek={handleSeek}
+        onSkipBack={handleSkipBack}
+        onSkipForward={handleSkipForward}
+        onVolumeChange={handleVolumeChange}
+        onMuteToggle={handleMuteToggle}
+        onFullscreenToggle={handleFullscreenToggle}
+        onSubtitleChange={handleSubtitleChange}
+        onBack={onBack ?? (() => {})}
+      />
+    </div>
+  );
+}

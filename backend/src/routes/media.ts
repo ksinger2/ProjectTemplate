@@ -47,7 +47,7 @@ router.get('/media/search', (req: Request, res: Response) => {
 
     const rows = sqlite.prepare(`
       SELECT m.* FROM media m
-      INNER JOIN media_fts fts ON fts.media_id = m.id
+      INNER JOIN media_fts fts ON fts.rowid = m.rowid
       WHERE media_fts MATCH ?
       LIMIT 50
     `).all(ftsQuery) as Array<typeof schema.media.$inferSelect>;
