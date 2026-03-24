@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Share2, Film, Music } from 'lucide-react';
+import { Play, Share2, Film, Music, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeList } from '@/components/media/EpisodeList';
 import { TrackList } from '@/components/media/TrackList';
 import { RatingButtons } from '@/components/profile/RatingButtons';
+import { ShareDialog } from '@/components/social/ShareDialog';
+import { WatchTogetherDialog } from '@/components/social/WatchTogetherDialog';
 import { cn } from '@/lib/utils';
 
 interface Media {
@@ -93,6 +95,8 @@ function extractArtistFromPath(filePath: string): string {
 
 export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
   const [imgError, setImgError] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
   const thumbnailUrl = `/api/media/${media.id}/thumbnail`;
   const showPoster = media.posterUrl !== null && !imgError;
   const duration = formatDuration(media.durationSeconds);
@@ -182,10 +186,22 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
               variant="outline"
               size="icon"
               className="border-border bg-secondary/50 hover:bg-secondary text-foreground"
-              aria-label="Share"
+              aria-label="Share with a friend"
+              onClick={() => setShareOpen(true)}
             >
               <Share2 className="w-4 h-4" />
             </Button>
+
+            {!isMusic && (
+              <Button
+                variant="outline"
+                className="border-border bg-secondary/50 hover:bg-secondary text-foreground gap-1.5"
+                onClick={() => setWatchTogetherOpen(true)}
+              >
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Watch Together</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -291,6 +307,22 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           <p className="text-muted-foreground text-sm">Coming soon</p>
         </div>
       </div>
+
+      {/* Share dialog */}
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        mediaId={media.id}
+        mediaTitle={media.title}
+      />
+
+      {/* Watch Together dialog */}
+      <WatchTogetherDialog
+        open={watchTogetherOpen}
+        onOpenChange={setWatchTogetherOpen}
+        mediaId={media.id}
+        mediaTitle={media.title}
+      />
     </div>
   );
 }

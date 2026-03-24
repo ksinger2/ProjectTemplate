@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, User, Tv, Film, Music, Gamepad2 } from 'lucide-react';
+import { Home, Search, User, Tv, Film, Music, Gamepad2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { RecommendationsInbox } from '@/components/social/RecommendationsInbox';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
@@ -85,8 +86,8 @@ export function NavBar() {
           })}
         </ul>
 
-        {/* Right section: search + avatar */}
-        <div className="flex items-center gap-2">
+        {/* Right section: search + inbox + friends + avatar */}
+        <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -105,6 +106,27 @@ export function NavBar() {
             />
             <TooltipContent>Search</TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link
+                  href="/friends"
+                  className={cn(
+                    'hidden md:inline-flex items-center justify-center size-11 rounded-lg',
+                    'text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  )}
+                  aria-label="Friends"
+                >
+                  <Users className="h-5 w-5" />
+                </Link>
+              }
+            />
+            <TooltipContent>Friends</TooltipContent>
+          </Tooltip>
+
+          <RecommendationsInbox />
 
           <Tooltip>
             <TooltipTrigger

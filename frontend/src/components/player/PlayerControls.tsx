@@ -47,6 +47,8 @@ interface PlayerControlsProps {
   onSubtitleChange: (id: string | null) => void;
   onBack: () => void;
   onShowHelp: () => void;
+  /** Extra controls (e.g., emoji picker) injected into the bottom control bar */
+  extraControls?: React.ReactNode;
 }
 
 function formatTime(seconds: number): string {
@@ -87,6 +89,7 @@ export function PlayerControls({
   onSubtitleChange,
   onBack,
   onShowHelp,
+  extraControls,
 }: PlayerControlsProps) {
   const [showVolume, setShowVolume] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -294,6 +297,9 @@ export function PlayerControls({
 
           {/* Right: controls */}
           <div className="flex items-center gap-1">
+            {/* Extra controls (emoji picker in watch-together mode) */}
+            {extraControls}
+
             {/* Subtitles */}
             <SubtitleSelector
               tracks={subtitles}

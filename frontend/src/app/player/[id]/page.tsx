@@ -6,6 +6,11 @@ import dynamic from 'next/dynamic';
 import { Loader2, Play, X } from 'lucide-react';
 import type { SubtitleTrack } from '@/components/player/SubtitleSelector';
 import type { Episode } from '@/lib/api';
+import { useSocket } from '@/hooks/useSocket';
+import { useAuth } from '@/hooks/useAuth';
+import { WatchTogetherOverlay } from '@/components/player/WatchTogetherOverlay';
+import { EmojiPicker } from '@/components/player/EmojiPicker';
+import { EmojiBurstOverlay, useEmojiBurst } from '@/components/player/EmojiBurst';
 
 // Dynamic import -- no SSR for the video player
 const VideoPlayer = dynamic(
@@ -173,6 +178,15 @@ function EpisodeList({
 }
 
 // --------------------------------------------------------------------------
+// Participant type for watch-together
+// --------------------------------------------------------------------------
+interface WatchParticipant {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string | null;
+}
+
+// --------------------------------------------------------------------------
 // Main Player Page
 // --------------------------------------------------------------------------
 
@@ -182,6 +196,10 @@ export default function PlayerPage() {
   const router = useRouter();
   const id = params?.id as string;
   const episodeId = searchParams?.get('episode') ?? undefined;
+  const sessionId = searchParams?.get('session') ?? undefined;
+
+  const { user } = useAuth();
+  const { socket, isConnected, emit, on, off } = useSocket();
 
   const [media, setMedia] = useState<MediaData | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
@@ -195,8 +213,20 @@ export default function PlayerPage() {
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
 
+  // Watch-together state
+  const [participants, setParticipants] = useState<WatchParticipant[]>([]);
+  const [isSynced, setIsSynced] = useState(true);
+  const videoElRef = useRef<HTMLVideoElement>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const syncLockRef = useRef(false); // prevent recursive sync events
+
+  // Emoji burst
+  const { emojis, addEmoji } = useEmojiBurst();
+
   const mediaIdRef = useRef(id);
   const episodeIdRef = useRef(episodeId);
+
+  const isWatchTogether = !!sessionId;
 
   // ---------- Determine the next episode ----------
   const findNextEpisode = useCallback(
@@ -214,6 +244,167 @@ export default function PlayerPage() {
     [episodes],
   );
 
+  // ---------- Socket.io watch-together integration ----------
+  useEffect(() => {
+    if (!isWatchTogether || !sessionId) return;
+
+    // Join the session via socket
+    emit('session:join', { sessionId }, (response: unknown) => {
+      const res = response as {
+        success: boolean;
+        data?: { hostId: string };
+        error?: string;
+      };
+      if (res.success && res.data) {
+        // Add self as participant
+        if (user) {
+          setParticipants((prev) => {
+            if (prev.some((p) => p.userId === user.id)) return prev;
+            return [
+              ...prev,
+              {
+                userId: user.id,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+              },
+            ];
+          });
+        }
+      }
+    });
+
+    // Listen for sync events
+    const unsubPlay = on('sync:play', () => {
+      if (syncLockRef.current) return;
+      syncLockRef.current = true;
+      videoElRef.current?.play().catch(() => {});
+      setTimeout(() => {
+        syncLockRef.current = false;
+      }, 100);
+    });
+
+    const unsubPause = on('sync:pause', () => {
+      if (syncLockRef.current) return;
+      syncLockRef.current = true;
+      videoElRef.current?.pause();
+      setTimeout(() => {
+        syncLockRef.current = false;
+      }, 100);
+    });
+
+    const unsubSeek = on('sync:seek', (data: unknown) => {
+      if (syncLockRef.current) return;
+      syncLockRef.current = true;
+      const { position } = data as { position: number };
+      if (videoElRef.current) {
+        videoElRef.current.currentTime = position;
+      }
+      setTimeout(() => {
+        syncLockRef.current = false;
+      }, 100);
+    });
+
+    const unsubJoined = on('session:joined', (data: unknown) => {
+      const { userId, displayName } = data as {
+        userId: string;
+        displayName: string;
+      };
+      setParticipants((prev) => {
+        if (prev.some((p) => p.userId === userId)) return prev;
+        return [...prev, { userId, displayName }];
+      });
+    });
+
+    const unsubLeft = on('session:participant-left', (data: unknown) => {
+      const { userId } = data as { userId: string };
+      setParticipants((prev) => prev.filter((p) => p.userId !== userId));
+    });
+
+    const unsubEnded = on('session:ended', () => {
+      // Session ended by host
+      router.push(`/media/${id}`);
+    });
+
+    // Heartbeat for drift detection
+    const unsubHeartbeat = on('sync:heartbeat', (data: unknown) => {
+      const { position } = data as { position: number; userId: string };
+      if (videoElRef.current) {
+        const drift = Math.abs(videoElRef.current.currentTime - position);
+        setIsSynced(drift < 0.5);
+        // Force sync if drift > 500ms
+        if (drift > 0.5) {
+          videoElRef.current.currentTime = position;
+          setIsSynced(true);
+        }
+      }
+    });
+
+    // Emoji reactions
+    const unsubEmoji = on('emoji:receive', (data: unknown) => {
+      const { emoji, displayName } = data as {
+        emoji: string;
+        userId: string;
+        displayName: string;
+      };
+      addEmoji(emoji, displayName);
+    });
+
+    // Send heartbeat every 2s
+    heartbeatRef.current = setInterval(() => {
+      if (videoElRef.current) {
+        emit('sync:heartbeat', {
+          position: videoElRef.current.currentTime,
+        });
+      }
+    }, 2000);
+
+    return () => {
+      unsubPlay();
+      unsubPause();
+      unsubSeek();
+      unsubJoined();
+      unsubLeft();
+      unsubEnded();
+      unsubHeartbeat();
+      unsubEmoji();
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+      }
+      emit('session:leave');
+    };
+  }, [isWatchTogether, sessionId, emit, on, off, user, addEmoji, router, id]);
+
+  // ---------- Sync callbacks for VideoPlayer ----------
+  const handleSyncPlay = useCallback(() => {
+    if (!isWatchTogether || syncLockRef.current) return;
+    emit('sync:play');
+  }, [isWatchTogether, emit]);
+
+  const handleSyncPause = useCallback(() => {
+    if (!isWatchTogether || syncLockRef.current) return;
+    emit('sync:pause');
+  }, [isWatchTogether, emit]);
+
+  const handleSyncSeek = useCallback(
+    (position: number) => {
+      if (!isWatchTogether || syncLockRef.current) return;
+      emit('sync:seek', { position });
+    },
+    [isWatchTogether, emit],
+  );
+
+  const handleEmojiSelect = useCallback(
+    (emoji: string) => {
+      emit('emoji:send', { emoji });
+    },
+    [emit],
+  );
+
+  const handleLeaveSession = useCallback(() => {
+    emit('session:leave');
+    router.push(`/media/${id}`);
+  }, [emit, router, id]);
+
   // ---------- Fetch all data needed for playback ----------
   useEffect(() => {
     if (!id) return;
@@ -229,7 +420,7 @@ export default function PlayerPage() {
       setNextEpisode(null);
 
       try {
-        // Build the stream URL fetch — episode vs media
+        // Build the stream URL fetch -- episode vs media
         const streamFetchUrl = episodeId
           ? `/api/episodes/${episodeId}/stream-url`
           : `/api/media/${id}/stream-url`;
@@ -411,8 +602,11 @@ export default function PlayerPage() {
   }, []);
 
   const handleBack = useCallback(() => {
+    if (isWatchTogether) {
+      emit('session:leave');
+    }
     router.push(`/media/${id}`);
-  }, [router, id]);
+  }, [router, id, isWatchTogether, emit]);
 
   // ---------- Build display title ----------
   let displayTitle = media?.title ?? 'Loading...';
@@ -438,6 +632,11 @@ export default function PlayerPage() {
         <p className="text-white/60 text-sm leading-relaxed">{media.description}</p>
       </div>
     ) : undefined;
+
+  // ---------- Extra controls for watch-together (emoji picker) ----------
+  const extraControls = isWatchTogether ? (
+    <EmojiPicker onSelect={handleEmojiSelect} />
+  ) : undefined;
 
   // ---------- Error state ----------
   if (error) {
@@ -482,7 +681,26 @@ export default function PlayerPage() {
             onEnded={handleEnded}
             onBack={handleBack}
             halfScreenContent={halfScreenContent}
+            extraControls={extraControls}
+            onSyncPlay={handleSyncPlay}
+            onSyncPause={handleSyncPause}
+            onSyncSeek={handleSyncSeek}
+            videoRef={videoElRef}
           />
+
+          {/* Watch Together overlay */}
+          {isWatchTogether && (
+            <WatchTogetherOverlay
+              participants={participants}
+              isSynced={isSynced}
+              isConnected={isConnected}
+              visible={true}
+              onLeave={handleLeaveSession}
+            />
+          )}
+
+          {/* Emoji burst animations */}
+          {isWatchTogether && <EmojiBurstOverlay emojis={emojis} />}
 
           {/* Next episode auto-advance overlay */}
           {showNextOverlay && nextEpisode && (

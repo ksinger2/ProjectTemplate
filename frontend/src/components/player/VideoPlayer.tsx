@@ -18,6 +18,14 @@ interface VideoPlayerProps {
   onBack?: () => void;
   /** Content rendered below the video in half-screen mode */
   halfScreenContent?: React.ReactNode;
+  /** Extra controls injected into the player control bar (e.g., emoji picker) */
+  extraControls?: React.ReactNode;
+  /** Callback when play/pause/seek occurs (for watch-together sync) */
+  onSyncPlay?: () => void;
+  onSyncPause?: () => void;
+  onSyncSeek?: (position: number) => void;
+  /** Ref to get the underlying video element for external sync control */
+  videoRef?: React.MutableRefObject<HTMLVideoElement | null>;
 }
 
 export function VideoPlayer({
@@ -29,8 +37,14 @@ export function VideoPlayer({
   onEnded,
   onBack,
   halfScreenContent,
+  extraControls,
+  onSyncPlay,
+  onSyncPause,
+  onSyncSeek,
+  videoRef: externalVideoRef,
 }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const internalVideoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = externalVideoRef || internalVideoRef;
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const positionTimerRef = useRef<ReturnType<typeof setInterval>>(undefined);
@@ -125,17 +139,20 @@ export function VideoPlayer({
     if (!video) return;
     if (video.paused) {
       video.play().catch(() => {});
+      onSyncPlay?.();
     } else {
       video.pause();
+      onSyncPause?.();
     }
-  }, []);
+  }, [onSyncPlay, onSyncPause]);
 
   // Seek
   const handleSeek = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = time;
-  }, []);
+    onSyncSeek?.(time);
+  }, [onSyncSeek]);
 
   // Skip back/forward
   const handleSkipBack = useCallback(() => {
@@ -520,6 +537,7 @@ export function VideoPlayer({
           onSubtitleChange={handleSubtitleChange}
           onBack={onBack ?? (() => {})}
           onShowHelp={() => setShowHelp(true)}
+          extraControls={extraControls}
         />
       </div>
 
