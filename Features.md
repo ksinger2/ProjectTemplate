@@ -63,9 +63,11 @@
 - [x] Emoji reactions (4x5 picker + Framer Motion burst) (2026-03-24)
 - [x] Session management with heartbeat (2026-03-24)
 
-## Phase 8: Polish & Hardening — In Progress
-- [ ] HTML5 games support (sandboxed iframe)
-- [ ] Security audit
-- [ ] Performance optimization (lazy loading, Next.js Image)
-- [ ] PWA manifest
-- [ ] Accessibility improvements
+## Phase 8: Polish & Hardening — Complete
+- [x] HTML5 games support (sandboxed iframe) (2026-03-24)
+- [x] Security audit — 17 findings, all critical/high fixed (2026-03-24)
+- [x] Performance optimization (fetchPriority, lazy loading) (2026-03-24)
+- [x] PWA manifest with icons (2026-03-24)
+- [x] Accessibility (skip-to-content, ARIA labels, reduced motion) (2026-03-24)
+- [x] "More Like This" recommendations on detail page (2026-03-24)
+- [x] Design review — 37 issues found, 16 critical/medium fixed (2026-03-24)
