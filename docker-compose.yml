@@ -1,0 +1,60 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+    volumes:
+      - ${MEDIA_DIR:?MEDIA_DIR is required}:/app/media:ro
+      - ${SUBTITLES_DIR:?SUBTITLES_DIR is required}:/app/subtitles:ro
+      - ${DATA_DIR:?DATA_DIR is required}:/app/data:rw
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - blockbuster
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - blockbuster
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - blockbuster
+
+networks:
+  blockbuster:
+    driver: bridge
+
+volumes:
+  blockbuster-data:
+  caddy-data:
+  caddy-config:
