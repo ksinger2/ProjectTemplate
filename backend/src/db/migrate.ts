@@ -115,6 +115,16 @@ CREATE TABLE IF NOT EXISTS watch_session_participants (
   joined_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS comments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+  episode_id TEXT REFERENCES episodes(id) ON DELETE CASCADE,
+  timestamp_seconds INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Full-text search index
 CREATE VIRTUAL TABLE IF NOT EXISTS media_fts USING fts5(
   title,
@@ -134,7 +144,9 @@ CREATE INDEX IF NOT EXISTS idx_user_ratings_user ON user_ratings(user_id);
 CREATE INDEX IF NOT EXISTS idx_friends_user ON friends(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_friends_friend ON friends(friend_id, status);
 CREATE INDEX IF NOT EXISTS idx_recommendations_to ON recommendations(to_user_id, seen);
-CREATE INDEX IF NOT EXISTS idx_watch_sessions_host ON watch_sessions(host_id, status)
+CREATE INDEX IF NOT EXISTS idx_watch_sessions_host ON watch_sessions(host_id, status);
+CREATE INDEX IF NOT EXISTS idx_comments_media ON comments(media_id, timestamp_seconds);
+CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id)
 `;
 
 // Execute each statement separately

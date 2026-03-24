@@ -38,6 +38,11 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '100kb' }));
+// Note: multipart upload limits are handled per-route by multer config:
+//   - Media files: 5GB (upload.ts mediaUpload)
+//   - Poster images: 10MB (upload.ts posterUpload)
+//   - Game files: 100MB (upload.ts gameUpload)
+//   - Avatars: 2MB (users.ts)
 app.use(cookieParser());
 app.use(securityHeaders);
 app.use(generalLimiter);

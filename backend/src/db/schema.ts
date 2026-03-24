@@ -87,6 +87,16 @@ export const recommendations = sqliteTable('recommendations', {
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
+export const comments = sqliteTable('comments', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  mediaId: text('media_id').notNull().references(() => media.id),
+  episodeId: text('episode_id').references(() => episodes.id),
+  timestampSeconds: integer('timestamp_seconds').notNull(),
+  text: text('text').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
 export const watchSessions = sqliteTable('watch_sessions', {
   id: text('id').primaryKey(),
   hostId: text('host_id').notNull().references(() => users.id),

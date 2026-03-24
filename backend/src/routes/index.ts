@@ -12,6 +12,8 @@ import friendsRouter from './friends';
 import recommendationsRouter from './recommendations';
 import sessionsRouter from './sessions';
 import statsRouter from './stats';
+import uploadRouter from './upload';
+import commentsRouter from './comments';
 
 const router = Router();
 
@@ -28,5 +30,7 @@ router.use(friendsRouter);
 router.use(recommendationsRouter);
 router.use(sessionsRouter);
 router.use(statsRouter);
+router.use(uploadRouter);
+router.use(commentsRouter);
 
 export default router;
