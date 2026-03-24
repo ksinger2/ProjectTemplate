@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Share2, Film } from 'lucide-react';
+import { Play, Share2, Film, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeList } from '@/components/media/EpisodeList';
+import { TrackList } from '@/components/media/TrackList';
 import { RatingButtons } from '@/components/profile/RatingButtons';
 import { cn } from '@/lib/utils';
 
@@ -75,17 +76,38 @@ function typeLabel(type: string): string {
   }
 }
 
+function extractArtistFromPath(filePath: string): string {
+  // Try to extract artist name from folder structure like /music/Artist Name/Album/
+  const parts = filePath.replace(/\\/g, '/').split('/').filter(Boolean);
+  // Look for a 'music' segment and take the next one as artist
+  const musicIdx = parts.findIndex((p) => p.toLowerCase() === 'music');
+  if (musicIdx >= 0 && musicIdx + 1 < parts.length) {
+    return parts[musicIdx + 1];
+  }
+  // Fallback: parent folder of the file
+  if (parts.length >= 2) {
+    return parts[parts.length - 2];
+  }
+  return '';
+}
+
 export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
   const [imgError, setImgError] = useState(false);
   const thumbnailUrl = `/api/media/${media.id}/thumbnail`;
   const showPoster = media.posterUrl !== null && !imgError;
   const duration = formatDuration(media.durationSeconds);
   const isShow = media.type === 'show';
+  const isMusic = media.type === 'music';
 
   const metaParts: string[] = [];
   if (media.year) metaParts.push(String(media.year));
   if (duration) metaParts.push(duration);
   metaParts.push(typeLabel(media.type));
+
+  // Derive artist from description or folder path for music
+  const musicArtist = isMusic
+    ? media.description || extractArtistFromPath(media.filePath) || 'Unknown Artist'
+    : '';
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,7 +124,11 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-bb-blue to-card flex items-center justify-center">
-            <Film className="w-24 h-24 text-muted-foreground/30" />
+            {isMusic ? (
+              <Music className="w-24 h-24 text-muted-foreground/30" />
+            ) : (
+              <Film className="w-24 h-24 text-muted-foreground/30" />
+            )}
           </div>
         )}
 
@@ -132,16 +158,23 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
             )}
           </div>
 
+          {/* Music artist line */}
+          {isMusic && musicArtist && (
+            <p className="text-muted-foreground text-sm mb-2">{musicArtist}</p>
+          )}
+
           {/* Action buttons */}
           <div className="flex items-center gap-3 flex-wrap">
-            <Button
-              size="lg"
-              className="bg-primary text-primary-foreground font-semibold px-6 h-10 rounded-md hover:bg-bb-accent-hover"
-              onClick={() => onPlay?.()}
-            >
-              <Play className="w-5 h-5 mr-1 fill-current" />
-              Play
-            </Button>
+            {!isMusic && (
+              <Button
+                size="lg"
+                className="bg-primary text-primary-foreground font-semibold px-6 h-10 rounded-md hover:bg-bb-accent-hover"
+                onClick={() => onPlay?.()}
+              >
+                <Play className="w-5 h-5 mr-1 fill-current" />
+                Play
+              </Button>
+            )}
 
             <RatingButtons mediaId={media.id} />
 
@@ -207,6 +240,47 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
             <EpisodeList
               episodes={media.episodes}
               onPlayEpisode={(episodeId) => onPlay?.(episodeId)}
+            />
+          </>
+        )}
+
+        {/* Track list for music */}
+        {isMusic && media.episodes && media.episodes.length > 0 && (
+          <>
+            <div className="border-t border-border" />
+            <TrackList
+              albumId={media.id}
+              albumTitle={media.title}
+              artist={musicArtist}
+              posterUrl={media.posterUrl}
+              tracks={media.episodes.map((ep) => ({
+                id: ep.id,
+                title: ep.title,
+                durationSeconds: ep.durationSeconds,
+                filePath: ep.filePath,
+                isEpisode: true,
+              }))}
+            />
+          </>
+        )}
+
+        {/* Single music file (no episodes/tracks) */}
+        {isMusic && (!media.episodes || media.episodes.length === 0) && (
+          <>
+            <div className="border-t border-border" />
+            <TrackList
+              albumId={media.id}
+              albumTitle={media.title}
+              artist={musicArtist}
+              posterUrl={media.posterUrl}
+              tracks={[
+                {
+                  id: media.id,
+                  title: media.title,
+                  durationSeconds: media.durationSeconds,
+                  filePath: media.filePath,
+                },
+              ]}
             />
           </>
         )}

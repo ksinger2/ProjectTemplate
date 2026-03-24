@@ -188,6 +188,57 @@ router.get('/media/:id', (req: Request, res: Response) => {
   }
 });
 
+// ---- GET /api/media/:id/episodes — List episodes with prev/next navigation ----
+
+router.get('/media/:id/episodes', (req: Request, res: Response) => {
+  try {
+    const showId = req.params.id as string;
+
+    // Verify media exists and is a show
+    const mediaRow = db
+      .select()
+      .from(schema.media)
+      .where(eq(schema.media.id, showId))
+      .get();
+
+    if (!mediaRow) {
+      res.status(404).json({ success: false, error: 'Media not found' });
+      return;
+    }
+
+    if (mediaRow.type !== 'show') {
+      res.status(400).json({ success: false, error: 'Media is not a show' });
+      return;
+    }
+
+    const episodeRows = db
+      .select()
+      .from(schema.episodes)
+      .where(eq(schema.episodes.showId, showId))
+      .orderBy(asc(schema.episodes.season), asc(schema.episodes.episode))
+      .all();
+
+    // Build response with previous/next episode IDs
+    const episodes = episodeRows.map((ep, idx) => ({
+      ...ep,
+      previousEpisodeId: idx > 0 ? episodeRows[idx - 1].id : null,
+      nextEpisodeId: idx < episodeRows.length - 1 ? episodeRows[idx + 1].id : null,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        showId,
+        totalEpisodes: episodes.length,
+        episodes,
+      },
+    });
+  } catch (err: any) {
+    console.error('[media/:id/episodes] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch episodes' });
+  }
+});
+
 // ---- POST /api/media/scan — Trigger scan ----
 
 router.post('/media/scan', async (_req: Request, res: Response) => {

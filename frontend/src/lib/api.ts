@@ -217,12 +217,24 @@ export const api = {
     search: (q: string) =>
       apiFetch<Media[]>(`${API_BASE}/media/search?q=${encodeURIComponent(q)}`),
     streamUrl: (id: string) =>
-      apiFetch<{ url: string }>(`${API_BASE}/media/${id}/stream`),
+      apiFetch<{ url: string; expiresAt: number }>(`${API_BASE}/media/${id}/stream-url`, {
+        method: 'POST',
+      }),
     scan: () =>
       apiFetch<{ added: number; updated: number; removed: number }>(
         `${API_BASE}/media/scan`,
         { method: 'POST' },
       ),
+  },
+
+  // Episodes ---------------------------------------------------------------
+  episodes: {
+    list: (mediaId: string) =>
+      apiFetch<Episode[]>(`${API_BASE}/media/${mediaId}/episodes`),
+    streamUrl: (episodeId: string) =>
+      apiFetch<{ url: string; expiresAt: number }>(`${API_BASE}/episodes/${episodeId}/stream-url`, {
+        method: 'POST',
+      }),
   },
 
   // Watch History ----------------------------------------------------------

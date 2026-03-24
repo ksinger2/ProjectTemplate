@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { MusicPlayerProvider } from "@/providers/MusicPlayerProvider";
 import { NavBar } from "@/components/layout/NavBar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { MiniPlayer } from "@/components/player/MiniPlayer";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,11 +42,14 @@ export default function RootLayout({
           </div>
         </noscript>
         <AuthProvider>
-          <TooltipProvider>
-            <NavBar />
-            <main className="flex-1 pb-14 md:pb-0">{children}</main>
-            <MobileNav />
-          </TooltipProvider>
+          <MusicPlayerProvider>
+            <TooltipProvider>
+              <NavBar />
+              <main className="flex-1 pb-14 md:pb-0">{children}</main>
+              <MiniPlayer />
+              <MobileNav />
+            </TooltipProvider>
+          </MusicPlayerProvider>
         </AuthProvider>
       </body>
     </html>

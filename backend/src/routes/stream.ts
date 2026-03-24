@@ -145,6 +145,18 @@ router.get('/stream/:mediaId', streamLimiter, authMiddleware, (req: AuthRequest,
       return;
     }
 
+    // Access logging
+    const isRangeStart = !req.headers.range || req.headers.range === 'bytes=0-';
+    if (isRangeStart) {
+      console.log(`[stream] userId=${uid} mediaId=${mediaId} action=start timestamp=${new Date().toISOString()}`);
+    }
+
+    res.on('finish', () => {
+      if (res.statusCode === 200) {
+        console.log(`[stream] userId=${uid} mediaId=${mediaId} action=complete timestamp=${new Date().toISOString()}`);
+      }
+    });
+
     serveFileWithRanges(req, res, filePath);
   } catch (err: any) {
     console.error('[stream] Error:', err.message);
@@ -195,6 +207,18 @@ router.get('/stream/episode/:episodeId', streamLimiter, authMiddleware, (req: Au
       res.status(404).json({ success: false, error: 'Episode file not found on disk' });
       return;
     }
+
+    // Access logging
+    const isRangeStart = !req.headers.range || req.headers.range === 'bytes=0-';
+    if (isRangeStart) {
+      console.log(`[stream] userId=${uid} episodeId=${episodeId} action=start timestamp=${new Date().toISOString()}`);
+    }
+
+    res.on('finish', () => {
+      if (res.statusCode === 200) {
+        console.log(`[stream] userId=${uid} episodeId=${episodeId} action=complete timestamp=${new Date().toISOString()}`);
+      }
+    });
 
     serveFileWithRanges(req, res, filePath);
   } catch (err: any) {

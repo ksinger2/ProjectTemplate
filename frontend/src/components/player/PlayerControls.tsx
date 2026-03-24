@@ -12,9 +12,13 @@ import {
   Minimize,
   ArrowLeft,
   Loader2,
+  PictureInPicture2,
+  SplitSquareVertical,
+  Keyboard,
 } from 'lucide-react';
 import { SubtitleSelector, type SubtitleTrack } from './SubtitleSelector';
 import { cn } from '@/lib/utils';
+import type { ViewMode } from './VideoPlayer';
 
 interface PlayerControlsProps {
   title: string;
@@ -26,6 +30,8 @@ interface PlayerControlsProps {
   volume: number;
   isMuted: boolean;
   isFullscreen: boolean;
+  isPip: boolean;
+  viewMode: ViewMode;
   subtitles: SubtitleTrack[];
   activeSubtitleId: string | null;
   visible: boolean;
@@ -36,8 +42,11 @@ interface PlayerControlsProps {
   onVolumeChange: (volume: number) => void;
   onMuteToggle: () => void;
   onFullscreenToggle: () => void;
+  onPipToggle: () => void;
+  onViewModeChange: (mode: ViewMode) => void;
   onSubtitleChange: (id: string | null) => void;
   onBack: () => void;
+  onShowHelp: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -61,6 +70,8 @@ export function PlayerControls({
   volume,
   isMuted,
   isFullscreen,
+  isPip,
+  viewMode,
   subtitles,
   activeSubtitleId,
   visible,
@@ -71,8 +82,11 @@ export function PlayerControls({
   onVolumeChange,
   onMuteToggle,
   onFullscreenToggle,
+  onPipToggle,
+  onViewModeChange,
   onSubtitleChange,
   onBack,
+  onShowHelp,
 }: PlayerControlsProps) {
   const [showVolume, setShowVolume] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -80,7 +94,7 @@ export function PlayerControls({
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState(0);
   const progressRef = useRef<HTMLDivElement>(null);
-  const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const progress = duration > 0 ? ((isSeeking ? seekTime : currentTime) / duration) * 100 : 0;
   const bufferedProgress = duration > 0 ? (buffered / duration) * 100 : 0;
@@ -153,6 +167,9 @@ export function PlayerControls({
     };
   }, []);
 
+  const controlBtnClass =
+    'flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/20 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
+
   return (
     <div
       className={cn(
@@ -166,7 +183,7 @@ export function PlayerControls({
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/20 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className={controlBtnClass}
             aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -284,6 +301,43 @@ export function PlayerControls({
               onChange={onSubtitleChange}
             />
 
+            {/* Keyboard shortcuts help */}
+            <button
+              type="button"
+              onClick={onShowHelp}
+              className={controlBtnClass}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard className="w-5 h-5 text-foreground" />
+            </button>
+
+            {/* PiP */}
+            <button
+              type="button"
+              onClick={onPipToggle}
+              className={cn(controlBtnClass, isPip && 'text-primary')}
+              aria-label={isPip ? 'Exit Picture-in-Picture' : 'Picture-in-Picture'}
+              title="Picture-in-Picture (P)"
+            >
+              <PictureInPicture2 className={cn('w-5 h-5', isPip ? 'text-primary' : 'text-foreground')} />
+            </button>
+
+            {/* Half-screen toggle */}
+            <button
+              type="button"
+              onClick={() =>
+                onViewModeChange(viewMode === 'half-screen' ? 'normal' : 'half-screen')
+              }
+              className={cn(controlBtnClass, viewMode === 'half-screen' && 'text-primary')}
+              aria-label={viewMode === 'half-screen' ? 'Exit half-screen' : 'Half-screen'}
+              title="Half-screen (H)"
+            >
+              <SplitSquareVertical
+                className={cn('w-5 h-5', viewMode === 'half-screen' ? 'text-primary' : 'text-foreground')}
+              />
+            </button>
+
             {/* Volume */}
             <div
               className="relative"
@@ -298,7 +352,7 @@ export function PlayerControls({
               <button
                 type="button"
                 onClick={onMuteToggle}
-                className="flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/20 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className={controlBtnClass}
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted ? (
@@ -329,7 +383,7 @@ export function PlayerControls({
             <button
               type="button"
               onClick={onFullscreenToggle}
-              className="flex items-center justify-center w-11 h-11 rounded-md hover:bg-white/20 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className={controlBtnClass}
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
               {isFullscreen ? (

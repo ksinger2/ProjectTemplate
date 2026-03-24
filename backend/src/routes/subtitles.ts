@@ -12,18 +12,48 @@ const router = Router();
 // ---- SRT to VTT conversion ----
 
 function srtToVtt(srtContent: string): string {
-  // Add WEBVTT header and convert comma timestamps to dot
-  let vtt = 'WEBVTT\n\n';
-  vtt += srtContent
+  const cleaned = srtContent
     // Remove BOM if present
     .replace(/^\uFEFF/, '')
     // Normalize line endings
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
-    // Convert timestamps: 00:01:23,456 --> 00:01:23.456
-    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+    .trim();
 
-  return vtt;
+  // Split into cue blocks separated by blank lines
+  const blocks = cleaned.split(/\n\n+/);
+
+  const vttCues: string[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split('\n');
+    if (lines.length < 2) continue;
+
+    // Find the timestamp line (contains " --> ")
+    let timestampIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(' --> ')) {
+        timestampIdx = i;
+        break;
+      }
+    }
+
+    if (timestampIdx === -1) continue;
+
+    // Convert comma timestamps to dot format
+    const timestampLine = lines[timestampIdx].replace(
+      /(\d{2}:\d{2}:\d{2}),(\d{3})/g,
+      '$1.$2'
+    );
+
+    // Subtitle text is everything after the timestamp line
+    const textLines = lines.slice(timestampIdx + 1).filter((l) => l.trim() !== '');
+    if (textLines.length === 0) continue;
+
+    vttCues.push(timestampLine + '\n' + textLines.join('\n'));
+  }
+
+  return 'WEBVTT\n\n' + vttCues.join('\n\n') + '\n';
 }
 
 // ---- GET /api/subtitles/:mediaId — List available subtitles for a media item ----

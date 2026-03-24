@@ -28,8 +28,10 @@ router.get('/watch-history', authMiddleware, (req: AuthRequest, res: Response) =
 
     // Build conditions
     const conditions = [eq(schema.watchHistory.userId, userId)];
-    if (status === 'in_progress' || status === 'finished') {
-      conditions.push(eq(schema.watchHistory.status, status));
+    // Accept both 'completed' and 'finished' as the same status
+    const normalizedStatus = status === 'completed' ? 'finished' : status;
+    if (normalizedStatus === 'in_progress' || normalizedStatus === 'finished') {
+      conditions.push(eq(schema.watchHistory.status, normalizedStatus));
     }
 
     // Query watch history with media join
@@ -57,6 +59,40 @@ router.get('/watch-history', authMiddleware, (req: AuthRequest, res: Response) =
   } catch (err: any) {
     console.error('[watch-history GET] Error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to fetch watch history' });
+  }
+});
+
+// ---- GET /api/watch-history/:mediaId — Get position for specific media ----
+
+router.get('/watch-history/:mediaId', authMiddleware, (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const mediaId = req.params.mediaId as string;
+    const episodeId = req.query.episodeId as string | undefined;
+
+    const conditions = [
+      eq(schema.watchHistory.userId, userId),
+      eq(schema.watchHistory.mediaId, mediaId),
+    ];
+    if (episodeId) {
+      conditions.push(eq(schema.watchHistory.episodeId, episodeId));
+    }
+
+    const row = db
+      .select()
+      .from(schema.watchHistory)
+      .where(and(...conditions))
+      .get();
+
+    if (!row) {
+      res.json({ success: true, data: null });
+      return;
+    }
+
+    res.json({ success: true, data: row });
+  } catch (err: any) {
+    console.error('[watch-history/:mediaId GET] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch watch position' });
   }
 });
 

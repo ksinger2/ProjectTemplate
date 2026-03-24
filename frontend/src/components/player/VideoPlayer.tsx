@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import Hls from 'hls.js';
 import { PlayerControls } from './PlayerControls';
+import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
 import type { SubtitleTrack } from './SubtitleSelector';
+
+export type ViewMode = 'normal' | 'fullscreen' | 'half-screen';
 
 interface VideoPlayerProps {
   src: string;
@@ -12,6 +16,8 @@ interface VideoPlayerProps {
   onPositionUpdate?: (seconds: number) => void;
   onEnded?: () => void;
   onBack?: () => void;
+  /** Content rendered below the video in half-screen mode */
+  halfScreenContent?: React.ReactNode;
 }
 
 export function VideoPlayer({
@@ -22,14 +28,16 @@ export function VideoPlayer({
   onPositionUpdate,
   onEnded,
   onBack,
+  halfScreenContent,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const positionTimerRef = useRef<ReturnType<typeof setInterval>>();
-  const doubleTapTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const positionTimerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const doubleTapTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
   const hasSetInitialPosition = useRef(false);
+  const hlsRef = useRef<Hls | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -39,8 +47,66 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPip, setIsPip] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('normal');
   const [controlsVisible, setControlsVisible] = useState(true);
   const [activeSubtitleId, setActiveSubtitleId] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // ---- HLS.js integration ----
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // Clean up previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    const isHls = src.endsWith('.m3u8') || src.includes('.m3u8?');
+
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Ready to play
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = src;
+    } else {
+      // Standard video source
+      video.src = src;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src]);
 
   // Show controls and start hide timer
   const showControls = useCallback(() => {
@@ -114,12 +180,48 @@ export function VideoPlayer({
     }
   }, []);
 
+  // PiP toggle
+  const handlePipToggle = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await video.requestPictureInPicture();
+      }
+    } catch {
+      // PiP not supported or denied
+    }
+  }, []);
+
+  // View mode toggle
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    if (mode === 'fullscreen') {
+      const container = containerRef.current;
+      if (!container) return;
+      if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(() => {});
+      }
+      setViewMode('fullscreen');
+    } else if (mode === 'half-screen') {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setViewMode('half-screen');
+    } else {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setViewMode('normal');
+    }
+  }, []);
+
   // Subtitle change
   const handleSubtitleChange = useCallback((id: string | null) => {
     const video = videoRef.current;
     if (!video) return;
     setActiveSubtitleId(id);
-    // Toggle track visibility
     for (let i = 0; i < video.textTracks.length; i++) {
       const track = video.textTracks[i];
       const trackId = subtitles[i]?.id;
@@ -148,7 +250,13 @@ export function VideoPlayer({
       setControlsVisible(true);
     };
     const onFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (fs) {
+        setViewMode('fullscreen');
+      } else if (viewMode === 'fullscreen') {
+        setViewMode('normal');
+      }
     };
     const onLoadedMetadata = () => {
       setDuration(video.duration || 0);
@@ -157,6 +265,8 @@ export function VideoPlayer({
         hasSetInitialPosition.current = true;
       }
     };
+    const onEnterpip = () => setIsPip(true);
+    const onLeavepip = () => setIsPip(false);
 
     video.addEventListener('play', onPlay);
     video.addEventListener('pause', onPause);
@@ -167,6 +277,8 @@ export function VideoPlayer({
     video.addEventListener('canplay', onCanPlay);
     video.addEventListener('ended', onEnded);
     video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('enterpictureinpicture', onEnterpip);
+    video.addEventListener('leavepictureinpicture', onLeavepip);
     document.addEventListener('fullscreenchange', onFullscreenChange);
 
     return () => {
@@ -179,8 +291,11 @@ export function VideoPlayer({
       video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('enterpictureinpicture', onEnterpip);
+      video.removeEventListener('leavepictureinpicture', onLeavepip);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPosition, showControls]);
 
   // Position update interval (every 10 seconds)
@@ -208,7 +323,6 @@ export function VideoPlayer({
   // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Don't capture if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const video = videoRef.current;
@@ -228,6 +342,29 @@ export function VideoPlayer({
         case 'M':
           e.preventDefault();
           handleMuteToggle();
+          break;
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          handlePipToggle();
+          break;
+        case 'h':
+        case 'H':
+          e.preventDefault();
+          setViewMode((prev) => (prev === 'half-screen' ? 'normal' : 'half-screen'));
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+          break;
+        case '?':
+          e.preventDefault();
+          setShowHelp((prev) => !prev);
+          break;
+        case 'Escape':
+          if (showHelp) {
+            e.preventDefault();
+            setShowHelp(false);
+          }
           break;
         case 'ArrowLeft':
           e.preventDefault();
@@ -254,7 +391,7 @@ export function VideoPlayer({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePlayPause, handleFullscreenToggle, handleMuteToggle, handleSkipBack, handleSkipForward, handleVolumeChange, volume, showControls]);
+  }, [handlePlayPause, handleFullscreenToggle, handleMuteToggle, handlePipToggle, handleSkipBack, handleSkipForward, handleVolumeChange, volume, showControls, showHelp]);
 
   // Anti-download: block right-click and Ctrl+S
   useEffect(() => {
@@ -284,7 +421,6 @@ export function VideoPlayer({
   // Touch: tap to show/hide, double-tap sides to skip
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
-      // Don't handle if tapping on controls
       const target = e.target as HTMLElement;
       if (target.closest('button') || target.closest('[role="slider"]') || target.closest('[role="listbox"]')) return;
 
@@ -298,7 +434,6 @@ export function VideoPlayer({
       const tapGap = now - lastTapRef.current.time;
 
       if (tapGap < 300 && Math.abs(x - lastTapRef.current.x) < 50) {
-        // Double tap
         if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
         const third = rect.width / 3;
         if (x < third) {
@@ -308,7 +443,6 @@ export function VideoPlayer({
         }
         lastTapRef.current = { time: 0, x: 0 };
       } else {
-        // Single tap - wait to see if double
         lastTapRef.current = { time: now, x };
         doubleTapTimerRef.current = setTimeout(() => {
           setControlsVisible((v) => !v);
@@ -326,59 +460,80 @@ export function VideoPlayer({
     };
   }, []);
 
+  const isHalfScreen = viewMode === 'half-screen';
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-black select-none"
+      className={`relative w-full bg-black select-none ${isHalfScreen ? 'h-auto flex flex-col' : 'h-full'}`}
       style={{ cursor: controlsVisible ? 'default' : 'none' }}
       onMouseMove={handleMouseMove}
       onTouchEnd={handleTouchEnd}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        className="absolute inset-0 w-full h-full object-contain"
-        playsInline
-        controlsList="nodownload"
-        disablePictureInPicture={false}
-        preload="auto"
-        onClick={handlePlayPause}
-      >
-        {subtitles.map((sub) => (
-          <track
-            key={sub.id}
-            kind="subtitles"
-            label={sub.label}
-            srcLang={sub.language}
-            src={sub.src}
-          />
-        ))}
-      </video>
+      {/* Video area */}
+      <div className={`relative ${isHalfScreen ? 'h-[50vh]' : 'w-full h-full'}`}>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-contain"
+          playsInline
+          controlsList="nodownload"
+          disablePictureInPicture={false}
+          preload="auto"
+          onClick={handlePlayPause}
+        >
+          {subtitles.map((sub) => (
+            <track
+              key={sub.id}
+              kind="subtitles"
+              label={sub.label}
+              srcLang={sub.language}
+              src={sub.src}
+            />
+          ))}
+        </video>
 
-      {/* Controls overlay */}
-      <PlayerControls
-        title={title}
-        isPlaying={isPlaying}
-        isBuffering={isBuffering}
-        currentTime={currentTime}
-        duration={duration}
-        buffered={buffered}
-        volume={volume}
-        isMuted={isMuted}
-        isFullscreen={isFullscreen}
-        subtitles={subtitles}
-        activeSubtitleId={activeSubtitleId}
-        visible={controlsVisible}
-        onPlayPause={handlePlayPause}
-        onSeek={handleSeek}
-        onSkipBack={handleSkipBack}
-        onSkipForward={handleSkipForward}
-        onVolumeChange={handleVolumeChange}
-        onMuteToggle={handleMuteToggle}
-        onFullscreenToggle={handleFullscreenToggle}
-        onSubtitleChange={handleSubtitleChange}
-        onBack={onBack ?? (() => {})}
-      />
+        {/* Controls overlay */}
+        <PlayerControls
+          title={title}
+          isPlaying={isPlaying}
+          isBuffering={isBuffering}
+          currentTime={currentTime}
+          duration={duration}
+          buffered={buffered}
+          volume={volume}
+          isMuted={isMuted}
+          isFullscreen={isFullscreen}
+          isPip={isPip}
+          viewMode={viewMode}
+          subtitles={subtitles}
+          activeSubtitleId={activeSubtitleId}
+          visible={controlsVisible}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onSkipBack={handleSkipBack}
+          onSkipForward={handleSkipForward}
+          onVolumeChange={handleVolumeChange}
+          onMuteToggle={handleMuteToggle}
+          onFullscreenToggle={handleFullscreenToggle}
+          onPipToggle={handlePipToggle}
+          onViewModeChange={handleViewModeChange}
+          onSubtitleChange={handleSubtitleChange}
+          onBack={onBack ?? (() => {})}
+          onShowHelp={() => setShowHelp(true)}
+        />
+      </div>
+
+      {/* Half-screen content area */}
+      {isHalfScreen && halfScreenContent && (
+        <div className="flex-1 min-h-[50vh] overflow-y-auto bg-[var(--bb-background,#0a1628)]">
+          {halfScreenContent}
+        </div>
+      )}
+
+      {/* Keyboard shortcut help overlay */}
+      {showHelp && (
+        <KeyboardShortcutHelp onClose={() => setShowHelp(false)} />
+      )}
     </div>
   );
 }
