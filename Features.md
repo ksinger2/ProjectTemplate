@@ -36,36 +36,36 @@
 - [x] Keyboard shortcut help overlay (2026-03-24)
 - [x] Stream access logging (2026-03-24)
 
-## Phase 4: Auth & User System — Planned
-- [ ] Email-based login (JWT + Cloudflare Access stub)
-- [ ] User profiles (name, avatar)
-- [ ] Watch history tracking
-- [ ] Continue Watching row
-- [ ] Auto-resume playback
-- [ ] Like/dislike ratings
+## Phase 4: Auth & User System — Complete
+- [x] Email-based login with JWT access+refresh tokens (2026-03-24)
+- [x] User profiles (name, avatar upload) (2026-03-24)
+- [x] Watch history tracking with auto-percentage (2026-03-24)
+- [x] Continue Watching row on home page (2026-03-24)
+- [x] Auto-resume playback from last position (2026-03-24)
+- [x] Like/dislike ratings with CRUD (2026-03-24)
 
-## Phase 5: Recommendations — Planned
-- [ ] Genre/keyword scoring algorithm
-- [ ] "Recommended For You" row
-- [ ] "Because You Watched X" rows
-- [ ] Cold start handling
+## Phase 5: Recommendations — Complete
+- [x] Genre/keyword scoring algorithm (3x/2x weights) (2026-03-24)
+- [x] "Recommended For You" endpoint (2026-03-24)
+- [x] "Because You Watched X" endpoint (2026-03-24)
+- [x] Cold start handling (recent + genre diversity) (2026-03-24)
 
-## Phase 6: Friends & Sharing — Planned
-- [ ] Friend requests via email
-- [ ] Accept/reject/block
-- [ ] Share title recommendations
-- [ ] Recommendations inbox
-- [ ] "Friends Recommend" row
+## Phase 6: Friends & Sharing — Complete
+- [x] Friend requests via email (2026-03-24)
+- [x] Accept/reject/block (2026-03-24)
+- [x] Share title recommendations with friends (2026-03-24)
+- [x] Recommendations inbox with unread badge (2026-03-24)
+- [x] Share + Watch Together buttons on media detail (2026-03-24)
 
-## Phase 7: Watch Together — Planned
-- [ ] Socket.io watch sessions
-- [ ] Sync playback (play/pause/seek)
-- [ ] Emoji reactions (picker + burst animation)
-- [ ] Session management
+## Phase 7: Watch Together — Complete
+- [x] Socket.io watch sessions with sync (2026-03-24)
+- [x] Sync playback (play/pause/seek) with drift detection (2026-03-24)
+- [x] Emoji reactions (4x5 picker + Framer Motion burst) (2026-03-24)
+- [x] Session management with heartbeat (2026-03-24)
 
-## Phase 8: Polish & Hardening — Planned
-- [ ] HTML5 games support
-- [ ] OWASP security audit
-- [ ] Performance optimization
-- [ ] Mobile polish + PWA
-- [ ] Accessibility audit
+## Phase 8: Polish & Hardening — In Progress
+- [ ] HTML5 games support (sandboxed iframe)
+- [ ] Security audit
+- [ ] Performance optimization (lazy loading, Next.js Image)
+- [ ] PWA manifest
+- [ ] Accessibility improvements
