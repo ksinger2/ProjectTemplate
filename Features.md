@@ -11,18 +11,18 @@
 - [x] Directory structure (media, subtitles, data) (2026-03-23)
 - [x] Database migration script (2026-03-23)
 
-## Phase 2: Media Library & Scanning — Planned
-- [ ] Media scanner service (ffprobe metadata extraction)
-- [ ] Folder convention parsing (shows/seasons/episodes)
-- [ ] Thumbnail generation (ffmpeg)
-- [ ] JSON sidecar metadata support
-- [ ] Subtitle file discovery
-- [ ] Media API endpoints (list, detail, search, scan)
-- [ ] Home page with Netflix-style category rows
-- [ ] Media detail page
-- [ ] Search bar with FTS5
-- [ ] Admin metadata UI
-- [ ] Responsive layout (mobile + desktop)
+## Phase 2: Media Library & Scanning — Complete
+- [x] Media scanner service (ffprobe metadata extraction) (2026-03-23)
+- [x] Folder convention parsing (shows/seasons/episodes) (2026-03-23)
+- [x] Thumbnail generation (ffmpeg) (2026-03-23)
+- [x] JSON sidecar metadata support (2026-03-23)
+- [x] Subtitle file discovery (2026-03-23)
+- [x] Media API endpoints (list, detail, search, scan) (2026-03-23)
+- [x] Home page with Netflix-style category rows (2026-03-23)
+- [x] Media detail page (2026-03-23)
+- [x] Search bar with FTS5 (2026-03-24)
+- [x] Admin metadata UI (2026-03-23)
+- [x] Responsive layout (mobile + desktop) (2026-03-23)
 
 ## Phase 3: Video Player & Streaming — Planned
 - [ ] Signed media URLs (HMAC-SHA256)
