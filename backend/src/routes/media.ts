@@ -5,6 +5,7 @@ import { db, sqlite } from '../db';
 import { schema } from '../db';
 import { eq, and, like, sql, asc } from 'drizzle-orm';
 import { scanMediaLibrary } from '../services/media-scanner';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -14,8 +15,9 @@ const THUMBNAILS_PATH = path.join(DATA_PATH, 'thumbnails');
 // ---- Helper to parse JSON array fields ----
 
 function parseMedia(row: typeof schema.media.$inferSelect) {
+  const { filePath, ...rest } = row;
   return {
-    ...row,
+    ...rest,
     genres: safeJsonParse(row.genres),
     keywords: safeJsonParse(row.keywords),
   };
@@ -32,7 +34,7 @@ function safeJsonParse(value: string): string[] {
 
 // ---- GET /api/media/search — Full-text search (must be before :id) ----
 
-router.get('/media/search', (req: Request, res: Response) => {
+router.get('/media/search', authMiddleware, (req: Request, res: Response) => {
   try {
     const q = (req.query.q as string || '').trim();
 
@@ -52,7 +54,14 @@ router.get('/media/search', (req: Request, res: Response) => {
       LIMIT 50
     `).all(ftsQuery) as Array<typeof schema.media.$inferSelect>;
 
-    const results = rows.map(parseMedia);
+    const results = rows.map((row: any) => {
+      const { filePath, ...rest } = row;
+      return {
+        ...rest,
+        genres: safeJsonParse(row.genres),
+        keywords: safeJsonParse(row.keywords),
+      };
+    });
 
     res.json({ success: true, data: results });
   } catch (err: any) {
@@ -63,7 +72,7 @@ router.get('/media/search', (req: Request, res: Response) => {
 
 // ---- GET /api/media — List media with filters ----
 
-router.get('/media', (req: Request, res: Response) => {
+router.get('/media', authMiddleware, (req: Request, res: Response) => {
   try {
     const type = req.query.type as string | undefined;
     const genre = req.query.genre as string | undefined;
@@ -126,8 +135,15 @@ router.get('/media', (req: Request, res: Response) => {
 
 // ---- GET /api/media/:id/thumbnail — Serve thumbnail ----
 
-router.get('/media/:id/thumbnail', (req: Request, res: Response) => {
+router.get('/media/:id/thumbnail', authMiddleware, (req: Request, res: Response) => {
   const id = req.params.id as string;
+
+  // UUID validation to prevent path traversal
+  if (!/^[a-f0-9-]{36}$/.test(id)) {
+    res.status(400).json({ success: false, error: 'Invalid media ID format' });
+    return;
+  }
+
   const thumbnailPath = path.join(THUMBNAILS_PATH, `${id}.jpg`);
 
   if (!fs.existsSync(thumbnailPath)) {
@@ -142,7 +158,7 @@ router.get('/media/:id/thumbnail', (req: Request, res: Response) => {
 
 // ---- GET /api/media/:id — Get media detail ----
 
-router.get('/media/:id', (req: Request, res: Response) => {
+router.get('/media/:id', authMiddleware, (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
 
@@ -190,7 +206,7 @@ router.get('/media/:id', (req: Request, res: Response) => {
 
 // ---- GET /api/media/:id/episodes — List episodes with prev/next navigation ----
 
-router.get('/media/:id/episodes', (req: Request, res: Response) => {
+router.get('/media/:id/episodes', authMiddleware, (req: Request, res: Response) => {
   try {
     const showId = req.params.id as string;
 
@@ -239,9 +255,60 @@ router.get('/media/:id/episodes', (req: Request, res: Response) => {
   }
 });
 
+// ---- GET /api/media/:id/game — Serve game HTML ----
+
+router.get('/media/:id/game', authMiddleware, (req: Request, res: Response) => {
+  const id = req.params.id as string;
+
+  // UUID validation to prevent path traversal
+  if (!/^[a-f0-9-]{36}$/.test(id)) {
+    res.status(400).json({ success: false, error: 'Invalid media ID format' });
+    return;
+  }
+
+  const media = db.select().from(schema.media).where(eq(schema.media.id, id)).get();
+  if (!media) {
+    res.status(404).json({ success: false, error: 'Media not found' });
+    return;
+  }
+
+  if (media.type !== 'game') {
+    res.status(400).json({ success: false, error: 'Media is not a game' });
+    return;
+  }
+
+  // Resolve the requested path within the game directory
+  const subPath = (req.query.path as string) || 'index.html';
+  const safeSub = path.normalize(subPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  const filePath = path.join(media.filePath, safeSub);
+
+  // Ensure the resolved path is within the game directory (prevent traversal)
+  const resolvedDir = path.resolve(media.filePath);
+  const resolvedFile = path.resolve(filePath);
+  if (!resolvedFile.startsWith(resolvedDir)) {
+    res.status(403).json({ success: false, error: 'Access denied' });
+    return;
+  }
+
+  if (!fs.existsSync(resolvedFile)) {
+    res.status(404).json({ success: false, error: 'File not found' });
+    return;
+  }
+
+  // Set CSP headers to restrict game content
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; frame-ancestors 'self'",
+  );
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+
+  res.sendFile(resolvedFile);
+});
+
 // ---- POST /api/media/scan — Trigger scan ----
 
-router.post('/media/scan', async (_req: Request, res: Response) => {
+router.post('/media/scan', authMiddleware, async (_req: Request, res: Response) => {
   try {
     const result = await scanMediaLibrary();
     res.json({ success: true, data: result });

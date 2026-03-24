@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { db, sqlite } from '../db';
 import { schema } from '../db';
 import { eq, asc, sql } from 'drizzle-orm';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -17,8 +18,9 @@ function safeJsonParse(value: string): string[] {
 }
 
 function parseMedia(row: typeof schema.media.$inferSelect) {
+  const { filePath, ...rest } = row;
   return {
-    ...row,
+    ...rest,
     genres: safeJsonParse(row.genres),
     keywords: safeJsonParse(row.keywords),
   };
@@ -26,7 +28,7 @@ function parseMedia(row: typeof schema.media.$inferSelect) {
 
 // ---- GET /api/admin/media — List all media for admin ----
 
-router.get('/admin/media', (req: Request, res: Response) => {
+router.get('/admin/media', authMiddleware, (req: Request, res: Response) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
@@ -70,7 +72,7 @@ router.get('/admin/media', (req: Request, res: Response) => {
 
 // ---- PATCH /api/admin/media/:id — Update media metadata ----
 
-router.patch('/admin/media/:id', (req: Request, res: Response) => {
+router.patch('/admin/media/:id', authMiddleware, (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const { title, description, genres, keywords, year, posterUrl } = req.body;

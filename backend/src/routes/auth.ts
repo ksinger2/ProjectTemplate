@@ -22,6 +22,17 @@ function cookieOpts(maxAgeMs: number) {
   };
 }
 
+function refreshCookieOpts(maxAgeMs: number) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict' as const,
+    path: '/api/auth/refresh',
+    maxAge: maxAgeMs,
+  };
+}
+
 // ---- POST /api/auth/login — Authenticate user ----
 
 router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
@@ -97,7 +108,7 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
 
     // Set httpOnly cookies
     res.cookie('token', accessToken, cookieOpts(3600000)); // 1 hour
-    res.cookie('refreshToken', refreshToken, cookieOpts(7 * 24 * 3600000)); // 7 days
+    res.cookie('refreshToken', refreshToken, refreshCookieOpts(7 * 24 * 3600000)); // 7 days
 
     res.json({
       success: true,
@@ -119,15 +130,19 @@ router.post('/auth/login', authLimiter, (req: AuthRequest, res: Response) => {
 // ---- POST /api/auth/logout — Clear auth cookies ----
 
 router.post('/auth/logout', (req: AuthRequest, res: Response) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const clearOpts = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
     sameSite: 'strict' as const,
     path: '/api',
   };
 
   res.clearCookie('token', clearOpts);
-  res.clearCookie('refreshToken', clearOpts);
+  res.clearCookie('refreshToken', {
+    ...clearOpts,
+    path: '/api/auth/refresh',
+  });
 
   res.json({ success: true, data: { message: 'Logged out' } });
 });

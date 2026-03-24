@@ -32,7 +32,6 @@ function formatMedia(m: any) {
     genres: parseJsonArray(m.genres),
     keywords: parseJsonArray(m.keywords),
     durationSeconds: m.durationSeconds,
-    filePath: m.filePath,
     codec: m.codec,
     resolution: m.resolution,
     createdAt: m.createdAt,

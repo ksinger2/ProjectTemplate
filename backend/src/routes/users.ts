@@ -225,6 +225,13 @@ router.post(
 router.get('/users/:id/avatar', (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
+
+    // UUID validation to prevent path traversal
+    if (!/^[a-f0-9-]{36}$/.test(id)) {
+      res.status(400).json({ success: false, error: 'Invalid user ID format' });
+      return;
+    }
+
     const avatarPath = path.join(AVATARS_PATH, `${id}.jpg`);
 
     if (!fs.existsSync(avatarPath)) {
