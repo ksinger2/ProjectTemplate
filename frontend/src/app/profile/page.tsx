@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { User, LogOut, Clock, CheckCircle, Layers, Camera, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -316,6 +317,12 @@ export default function ProfilePage() {
               Start watching to see your stats!
             </p>
           )}
+          <Link
+            href="/stats"
+            className="inline-flex items-center text-sm font-medium text-primary hover:text-bb-accent-hover transition-colors"
+          >
+            See full stats &rarr;
+          </Link>
         </div>
 
         <Separator className="bg-border" />

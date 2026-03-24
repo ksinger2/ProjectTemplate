@@ -26,6 +26,9 @@ interface VideoPlayerProps {
   onSyncSeek?: (position: number) => void;
   /** Ref to get the underlying video element for external sync control */
   videoRef?: React.MutableRefObject<HTMLVideoElement | null>;
+  /** Intro skip markers (in seconds) */
+  introStart?: number;
+  introEnd?: number;
 }
 
 export function VideoPlayer({
@@ -42,6 +45,8 @@ export function VideoPlayer({
   onSyncPause,
   onSyncSeek,
   videoRef: externalVideoRef,
+  introStart,
+  introEnd,
 }: VideoPlayerProps) {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
@@ -66,6 +71,7 @@ export function VideoPlayer({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [activeSubtitleId, setActiveSubtitleId] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSkipIntro, setShowSkipIntro] = useState(false);
 
   // ---- HLS.js integration ----
   useEffect(() => {
@@ -246,6 +252,15 @@ export function VideoPlayer({
     }
   }, [subtitles]);
 
+  // Skip intro
+  const handleSkipIntro = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || introEnd == null) return;
+    video.currentTime = introEnd;
+    setShowSkipIntro(false);
+    onSyncSeek?.(introEnd);
+  }, [introEnd, onSyncSeek]);
+
   // Video event handlers
   useEffect(() => {
     const video = videoRef.current;
@@ -253,7 +268,12 @@ export function VideoPlayer({
 
     const onPlay = () => { setIsPlaying(true); showControls(); };
     const onPause = () => { setIsPlaying(false); setControlsVisible(true); };
-    const onTimeUpdate = () => setCurrentTime(video.currentTime);
+    const onTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      if (introStart != null && introEnd != null && introEnd > introStart) {
+        setShowSkipIntro(video.currentTime >= introStart && video.currentTime < introEnd);
+      }
+    };
     const onDurationChange = () => setDuration(video.duration || 0);
     const onProgress = () => {
       if (video.buffered.length > 0) {
@@ -313,7 +333,7 @@ export function VideoPlayer({
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPosition, showControls]);
+  }, [initialPosition, showControls, introStart, introEnd]);
 
   // Position update interval (every 10 seconds)
   useEffect(() => {
@@ -539,6 +559,18 @@ export function VideoPlayer({
           onShowHelp={() => setShowHelp(true)}
           extraControls={extraControls}
         />
+
+        {/* Skip Intro button */}
+        {showSkipIntro && (
+          <button
+            onClick={handleSkipIntro}
+            className="absolute bottom-24 right-8 z-30 px-6 py-3
+              bg-black/70 text-white font-semibold text-sm rounded-md
+              border border-bb-accent hover:bg-black/90 transition-all"
+          >
+            Skip Intro
+          </button>
+        )}
       </div>
 
       {/* Half-screen content area */}

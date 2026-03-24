@@ -608,12 +608,16 @@ export default function PlayerPage() {
     router.push(`/media/${id}`);
   }, [router, id, isWatchTogether, emit]);
 
-  // ---------- Build display title ----------
+  // ---------- Build display title + intro markers ----------
   let displayTitle = media?.title ?? 'Loading...';
+  let introStart: number | undefined;
+  let introEnd: number | undefined;
   if (episodeId && episodes.length > 0) {
     const currentEp = episodes.find((ep) => ep.id === episodeId);
     if (currentEp) {
       displayTitle = `${media?.title} - S${currentEp.seasonNumber}E${currentEp.episodeNumber}: ${currentEp.title}`;
+      introStart = currentEp.introStart;
+      introEnd = currentEp.introEnd;
     }
   }
 
@@ -682,6 +686,8 @@ export default function PlayerPage() {
             onBack={handleBack}
             halfScreenContent={halfScreenContent}
             extraControls={extraControls}
+            introStart={introStart}
+            introEnd={introEnd}
             onSyncPlay={handleSyncPlay}
             onSyncPause={handleSyncPause}
             onSyncSeek={handleSyncSeek}

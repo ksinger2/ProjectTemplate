@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Film, Tv, Music, Gamepad2, Pencil, Loader2, RefreshCw, X,
+  Search, Film, Tv, Music, Gamepad2, Pencil, Loader2, RefreshCw, X, List,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -95,6 +95,16 @@ export default function AdminPage() {
     genres: '',
     keywords: '',
   });
+
+  // Episode intro management
+  const [episodesOpen, setEpisodesOpen] = useState(false);
+  const [episodesMedia, setEpisodesMedia] = useState<Media | null>(null);
+  const [episodesList, setEpisodesList] = useState<
+    { id: string; seasonNumber: number; episodeNumber: number; title: string; introStart: number | null; introEnd: number | null }[]
+  >([]);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
+  const [episodeSaving, setEpisodeSaving] = useState<string | null>(null);
+  const [episodeSaveMsg, setEpisodeSaveMsg] = useState<Record<string, string>>({});
 
   const fetchMedia = useCallback(async () => {
     setIsLoading(true);
@@ -189,6 +199,59 @@ export default function AdminPage() {
       setSaveError('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openEpisodes = async (item: Media) => {
+    setEpisodesMedia(item);
+    setEpisodesOpen(true);
+    setEpisodesLoading(true);
+    setEpisodeSaveMsg({});
+    try {
+      const res = await fetch(`/api/media/${item.id}/episodes`, { credentials: 'include' });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setEpisodesList(
+          json.data.map((ep: Record<string, unknown>) => ({
+            id: ep.id as string,
+            seasonNumber: ep.seasonNumber as number ?? ep.season as number ?? 1,
+            episodeNumber: ep.episodeNumber as number ?? ep.episode as number ?? 1,
+            title: ep.title as string ?? '',
+            introStart: (ep.introStart as number) ?? null,
+            introEnd: (ep.introEnd as number) ?? null,
+          }))
+        );
+      }
+    } catch {
+      setEpisodesList([]);
+    } finally {
+      setEpisodesLoading(false);
+    }
+  };
+
+  const handleEpisodeIntroSave = async (epId: string, introStart: number | null, introEnd: number | null) => {
+    setEpisodeSaving(epId);
+    setEpisodeSaveMsg((prev) => ({ ...prev, [epId]: '' }));
+    try {
+      const res = await fetch(`/api/admin/episodes/${epId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ introStart, introEnd }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEpisodeSaveMsg((prev) => ({ ...prev, [epId]: 'Saved' }));
+      } else {
+        setEpisodeSaveMsg((prev) => ({ ...prev, [epId]: json.error || 'Failed' }));
+      }
+    } catch {
+      setEpisodeSaveMsg((prev) => ({ ...prev, [epId]: 'Failed' }));
+    } finally {
+      setEpisodeSaving(null);
+      setTimeout(() => {
+        setEpisodeSaveMsg((prev) => ({ ...prev, [epId]: '' }));
+      }, 3000);
     }
   };
 
@@ -326,6 +389,18 @@ export default function AdminPage() {
                   {item.year || '---'}
                 </span>
 
+                {/* Episodes button (shows only) */}
+                {item.type === 'show' && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => openEpisodes(item)}
+                    aria-label={`Episodes for ${item.title}`}
+                  >
+                    <List className="size-3.5" />
+                  </Button>
+                )}
+
                 {/* Edit button */}
                 <Button
                   variant="ghost"
@@ -340,6 +415,100 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Episodes intro dialog */}
+      <Dialog open={episodesOpen} onOpenChange={setEpisodesOpen}>
+        <DialogContent className="sm:max-w-2xl bg-card max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Episodes: {episodesMedia?.title}</DialogTitle>
+          </DialogHeader>
+
+          {episodesLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : episodesList.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No episodes found for this show.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {episodesList
+                .sort((a, b) =>
+                  a.seasonNumber !== b.seasonNumber
+                    ? a.seasonNumber - b.seasonNumber
+                    : a.episodeNumber - b.episodeNumber
+                )
+                .map((ep) => (
+                  <div
+                    key={ep.id}
+                    className="flex flex-wrap items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
+                  >
+                    <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">
+                      S{String(ep.seasonNumber).padStart(2, '0')}E{String(ep.episodeNumber).padStart(2, '0')}
+                    </span>
+                    <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">
+                      {ep.title}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Start</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={ep.introStart ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setEpisodesList((prev) =>
+                            prev.map((x) => (x.id === ep.id ? { ...x, introStart: val } : x))
+                          );
+                        }}
+                        className="w-20 h-8 text-xs bg-secondary border-border"
+                        placeholder="sec"
+                      />
+                      <label className="text-xs text-muted-foreground">End</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={ep.introEnd ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setEpisodesList((prev) =>
+                            prev.map((x) => (x.id === ep.id ? { ...x, introEnd: val } : x))
+                          );
+                        }}
+                        className="w-20 h-8 text-xs bg-secondary border-border"
+                        placeholder="sec"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={episodeSaving === ep.id}
+                        onClick={() => handleEpisodeIntroSave(ep.id, ep.introStart, ep.introEnd)}
+                        className="h-8 text-xs"
+                      >
+                        {episodeSaving === ep.id ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          'Save'
+                        )}
+                      </Button>
+                      {episodeSaveMsg[ep.id] && (
+                        <span
+                          className={cn(
+                            'text-xs',
+                            episodeSaveMsg[ep.id] === 'Saved' ? 'text-[#46d369]' : 'text-destructive',
+                          )}
+                        >
+                          {episodeSaveMsg[ep.id]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

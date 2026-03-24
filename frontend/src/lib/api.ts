@@ -46,6 +46,8 @@ export interface Episode {
   duration?: number;
   filePath: string;
   thumbnailPath?: string;
+  introStart?: number;
+  introEnd?: number;
 }
 
 export interface Subtitle {

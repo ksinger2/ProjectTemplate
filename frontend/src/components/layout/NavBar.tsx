@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, User, Tv, Film, Music, Gamepad2, Users } from 'lucide-react';
+import { Home, Search, User, Tv, Film, Music, Gamepad2, Users, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -124,6 +124,25 @@ export function NavBar() {
               }
             />
             <TooltipContent>Friends</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link
+                  href="/stats"
+                  className={cn(
+                    'hidden md:inline-flex items-center justify-center size-11 rounded-lg',
+                    'text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  )}
+                  aria-label="Stats"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                </Link>
+              }
+            />
+            <TooltipContent>Stats</TooltipContent>
           </Tooltip>
 
           <RecommendationsInbox />
