@@ -1,1 +1,36 @@
-.claude/agents/.principal-product-manager.md.swp
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+frontend/.next/
+frontend/out/
+
+# Environment secrets (keep .env.example)
+backend/.env
+
+# Database (generated)
+data/blockbuster.db
+data/blockbuster.db-wal
+data/blockbuster.db-shm
+
+# Generated media assets
+data/thumbnails/*.jpg
+data/avatars/*
+!data/thumbnails/.gitkeep
+!data/avatars/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

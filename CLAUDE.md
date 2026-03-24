@@ -1,4 +1,4 @@
-# {{PROJECT_NAME}}
+# Blockbuster
 
 > **Read and follow @HardRules.md — these are non-negotiable.**
 
@@ -19,28 +19,66 @@
 **Everything else → agents first, then summarize.**
 
 ## Project Overview
-[Describe what this project does, who it's for, and the core problem it solves]
+Blockbuster is a private, self-hosted Netflix-like media streaming platform. It serves movies, TV shows, music, and games from local directories to authenticated users via the web. Features include responsive Netflix-style UI, watch-together sync, emoji reactions, friend system, local recommendations, and hyper-secure content protection. No AI/LLM/cloud dependencies for core functionality.
 
 ## Tech Stack
-[List frameworks, languages, key dependencies — e.g. "React + TypeScript frontend, FastAPI backend, PostgreSQL"]
+- **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: Express.js + TypeScript + Socket.io (port 4000)
+- **Database**: SQLite (better-sqlite3) + Drizzle ORM + FTS5 for search
+- **Video Player**: Plyr.io + HLS.js
+- **Real-time**: Socket.io (watch-together, emoji reactions)
+- **Media Processing**: ffmpeg + ffprobe (fluent-ffmpeg)
+- **Auth**: JWT (httpOnly cookies) + Cloudflare Access stub
+- **Deployment**: Home server / NAS, Docker Compose
 
 ## Architecture
-[High-level architecture description — how components connect, data flow, key services]
+```
+Monorepo (npm workspaces)
+├── frontend/          — Next.js app (port 3000)
+├── backend/           — Express + Socket.io (port 4000)
+├── shared/            — TypeScript types shared between packages
+├── media/             — Local media files
+│   ├── movies/        — Movie files + optional metadata.json
+│   ├── shows/         — ShowName/Season 01/S01E01 - Title.mp4
+│   ├── music/         — Music files
+│   └── games/         — HTML5 games (GameName/index.html)
+├── subtitles/         — title.lang.vtt / title.lang.srt
+└── data/
+    ├── blockbuster.db — SQLite database
+    ├── avatars/       — User profile images
+    └── thumbnails/    — Auto-generated poster frames
+```
 For detailed architecture docs, see @docs/architecture.md
 
 ## Key Conventions
-[Project-specific patterns, naming conventions, file organization rules]
 - Follow existing patterns in the codebase before introducing new ones
 - Check for reusable components/utilities before building new ones
+- All API responses use `ApiResponse<T>` envelope from `@blockbuster/shared`
+- Media files are NEVER served directly — always through signed URLs
+- Genres and keywords stored as JSON arrays in SQLite text columns
+- Use Drizzle ORM for all database queries (no raw SQL except FTS5)
+- Frontend uses TanStack Query for server state, Zustand for client state
+- All components follow the design system in @docs/design-system.md
 
 ## How to Run
-[Build and run commands — e.g. `npm install && npm run dev`, `docker compose up`]
+```bash
+npm install          # Install all workspace dependencies
+npm run dev          # Start frontend (3000) + backend (4000) concurrently
+```
+
+Backend only: `npm run dev -w backend`
+Frontend only: `npm run dev -w frontend`
+Database migration: `npx ts-node backend/src/db/migrate.ts`
 
 ## How to Test
-[Test commands — e.g. `npm test`, `pytest`, `flutter test`]
+```bash
+npm test             # Run all tests
+npm test -w backend  # Backend tests only
+npm test -w frontend # Frontend tests only
+```
 
 ## How to Deploy
-[Deploy commands — see @docs/deployment.md for full deployment guide]
+See @docs/deployment.md — Docker Compose for home server / NAS deployment.
 
 ## Session Protocol
 1. Read `NextSteps.md` before starting work — it has the latest context
@@ -51,8 +89,6 @@ For detailed architecture docs, see @docs/architecture.md
 6. Use `/plan` to create structured implementation plans before building
 7. Use `/review` before committing to catch issues early
 8. Use `/ship` for the full build+test+verify+commit workflow
-9. Use `/setup` to initialize a new project from this template
-10. Use `/onboard` for comprehensive project onboarding
 
 ## Quality & Testing Commands
 - `/runqa` — Internal QA audit using agents — no external tools needed
@@ -69,7 +105,6 @@ For detailed architecture docs, see @docs/architecture.md
 - `/costoptimization` — Audit agent usage, context waste, and code for cost savings
 - `/oncall` — Start autonomous production monitoring with self-healing
 - `/distribute` — Full release workflow: version, build, publish, deploy, announce
-- `/social-post` — Create and post social media content about the project
 - `/rollback` — Explicit versioned rollback with optional migration revert
 - `/deps` — Dependency audit and upgrade workflow
 - `/env` — Environment variable validation and sync across environments
@@ -86,14 +121,10 @@ For detailed architecture docs, see @docs/architecture.md
 - `/load-test` — Performance and load testing with latency metrics
 - `/snapshot` — Visual regression testing: capture and diff UI screenshots
 
-## Feature Management Commands
-- `/feature-flag` — Create, toggle, audit, and retire feature flags
-
 ## Scaffolding Commands
 - `/new-component <name>` — Scaffold a UI component with styles, tests, and exports
 - `/new-page <name>` — Scaffold a page/route with loading and error states
 - `/new-endpoint <description>` — Scaffold an API endpoint with validation and tests
-- `/new-service <name>` — Scaffold a microservice with Dockerfile, health endpoint, and logging
 
 ## Available Agents
 This project includes a full product development team in `.claude/agents/`:
@@ -105,23 +136,29 @@ This project includes a full product development team in `.claude/agents/`:
 - **frontend-engineer** — UI implementation, design system adherence, state handling
 - **senior-frontend-engineer** — End-to-end feature building, AI integration
 - **backend-lead-engineer** — API design, database, security, infrastructure
-- **ai-engineer** — AI/ML integration, prompt engineering, RAG, agent frameworks
 - **qa-engineer** — Automated testing, test infrastructure, coverage
 - **manual-qa-tester** — Manual testing, interaction testing, visual auditing
 - **data-scientist** — Analytics tracking, event taxonomy, measurement plans
 - **security-reviewer** — Security auditing, OWASP top 10, auth flaws, data exposure
-- **gtm-strategist** — Go-to-market strategy, positioning, launch planning, growth experiments, content/social strategy
-- **social-strategist** — Autonomous social media management, content generation, Playwright automation, platform optimization
-- **on-call-engineer** — Autonomous production monitoring, incident diagnosis, self-healing, rollback, alerting
-- **release-engineer** — Release management, versioning, changelog, package publishing, CI/CD, multi-environment promotion
-- **database-engineer** — Schema design, migrations, query optimization, indexing, data modeling, seed data
-- **technical-writer** — Documentation ownership: API docs, architecture docs, runbooks, changelogs
-- **devops-engineer** — Infrastructure-as-code, CI/CD, containers, environment provisioning, secrets management
-- **growth-engineer** — A/B testing, conversion funnel optimization, referral mechanics, growth experiments
+- **on-call-engineer** — Autonomous production monitoring, incident diagnosis, self-healing
+- **release-engineer** — Release management, versioning, changelog, package publishing
+- **database-engineer** — Schema design, migrations, query optimization, indexing
+- **technical-writer** — Documentation ownership: API docs, architecture docs, runbooks
+- **devops-engineer** — Infrastructure-as-code, CI/CD, containers, environment provisioning
+
+## Key Documentation
+| Doc | Purpose |
+|-----|---------|
+| @docs/prd.md | Product requirements document |
+| @docs/design-system.md | Visual design language and component specs |
+| @docs/screen-specs.md | Screen wireframes and interaction specs |
+| @docs/frontend-architecture.md | Frontend directory structure, components, hooks |
+| @docs/security.md | Threat model, content protection, auth spec |
+| @docs/architecture.md | System architecture |
+| @docs/data-model.md | Database schema |
+| @docs/api.md | API endpoint documentation |
 
 ## Browser Automation (Chrome CDP)
-
-This project includes the `chrome-cdp` skill for real-time browser interaction:
 
 **Setup:**
 1. Enable remote debugging: `chrome://inspect/#remote-debugging` → toggle switch
@@ -129,22 +166,7 @@ This project includes the `chrome-cdp` skill for real-time browser interaction:
 
 **Quick Commands:**
 ```bash
-# List open tabs
 .claude/skills/chrome-cdp/scripts/cdp.mjs list
-
-# Take screenshot
 .claude/skills/chrome-cdp/scripts/cdp.mjs shot <target> /tmp/screenshot.png
-
-# Navigate, click, type
 .claude/skills/chrome-cdp/scripts/cdp.mjs nav <target> http://localhost:3000
-.claude/skills/chrome-cdp/scripts/cdp.mjs click <target> "button.submit"
-.claude/skills/chrome-cdp/scripts/cdp.mjs type <target> "test input"
-
-# Cleanup screenshots
-rm ~/.cache/cdp/screenshot-*.png
 ```
-
-Use with `/visual-loop` for automated design review iterations.
-
-## API Documentation
-See @docs/api.md for endpoint documentation and response formats.

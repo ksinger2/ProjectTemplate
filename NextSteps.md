@@ -1,127 +1,135 @@
-# {{PROJECT_NAME}} — Session Handoff
+# Blockbuster — Session Handoff
 
-<!--
-PURPOSE: This file is the handoff document between Claude Code sessions.
-Every time you end a work session, update this file so the next session
-can pick up exactly where you left off. Think of it as a note to your
-future self (or a future agent).
+## Re-initialization Checklist
+When starting a new session, read these files in order:
+1. `CLAUDE.md` — Project overview, tech stack, conventions, commands
+2. `HardRules.md` — Non-negotiable behavior rules
+3. `Features.md` — Current feature status by phase
+4. This file (`NextSteps.md`) — What was done, what's next
+5. `/home/karen/.claude/plans/calm-churning-codd.md` — Full 8-phase implementation plan
 
-HOW TO UPDATE:
-- Summarize what was built or changed this session
-- Note what's working and what's broken
-- List specific next steps with enough detail to act on immediately
-- Include any blockers, open questions, or decisions needed
-- Keep it concise — bullet points, not essays
-- Use /reinit at the start of each new session to read this file + project context
+### Key Design & Requirements Docs (review before building UI)
+- `docs/prd.md` — Product requirements, user personas, acceptance criteria, user flows
+- `docs/design-system.md` — Visual design language (Blockbuster Video blue/yellow theme), component specs
+- `docs/screen-specs.md` — ASCII wireframes for all 10 screens (desktop + mobile)
+- `docs/frontend-architecture.md` — Component inventory (20 components), hooks (9), state management, API client
+- `docs/security.md` — Threat model, content protection spec, 50+ security test cases
 
-WHEN TO UPDATE:
-- At the end of every work session
-- After completing a significant feature or fix
-- When you hit a blocker and need to context-switch
-- Before handing off to another person or agent
--->
+### Key Code Entry Points
+- `backend/src/index.ts` — Express server entry
+- `backend/src/db/schema.ts` — Drizzle ORM table definitions
+- `backend/src/db/migrate.ts` — Database migration (run with `npx ts-node backend/src/db/migrate.ts`)
+- `backend/src/services/media-scanner.ts` — Media library scanner (if Phase 2 agent completed)
+- `backend/src/routes/media.ts` — Media API endpoints (if Phase 2 agent completed)
+- `frontend/src/app/layout.tsx` — Root layout
+- `frontend/src/app/globals.css` — Design tokens / Tailwind theme
+- `shared/src/types/` — All TypeScript type definitions
 
-## What Was Done This Session
+---
 
-### Autonomous Build Loop
-- Created `/autobuild` command — autonomous plan → build → test → loop workflow with checkpoint support
-- Created `build-loop-state` skill — persistent state management for build iterations (reads/writes `tasks/build-state.md`)
-- Updated `CLAUDE.md` — added `/autobuild` to commands section
-- Created `tasks/` directory with `.gitkeep` — referenced by HardRules (plans), autobuild (build state), and task tracking
-- Added Phase 3.3 specialist reviews to autobuild: design (`lead-designer`), security (`security-reviewer`), and AI prompt optimization (`ai-engineer`) — all run in parallel as blocking gates before shipping
+## What Was Done (Session 1 — 2026-03-23)
 
-### Autonomous On-Call & Self-Healing System
-- Created **on-call-engineer** agent — autonomous monitoring, 4-tier escalation, self-healing protocol with guardrails
-- Created **release-engineer** agent — semantic versioning, changelog generation, multi-environment promotion
-- Created `/oncall` command — starts CronCreate-based monitoring loop (session-bound, 3-day expiry)
-- Created `/distribute` command — full release pipeline: test → version → build → publish → deploy → announce
-- Created `/social-post` command — social media content creation and posting workflow
-- Created `docs/oncall-setup.md` — health check config, alerting channels, auto-fix boundaries
-- Created `incident-response` skill — severity classification, diagnosis checklist, rollback decision tree
-- Updated `.github/workflows/ci.yml` — added health-check, auto-rollback, and notify jobs (commented, ready to uncomment)
+### Phase 1: Project Scaffolding (COMPLETE)
+- Monorepo with npm workspaces (frontend, backend, shared)
+- Next.js 15 + Tailwind + shadcn/ui (12 components) — dark theme
+- Express + TypeScript + Socket.io — security middleware, rate limiting, health endpoint
+- Shared TypeScript types (media, user, social, watch, API)
+- SQLite + Drizzle ORM — 10 tables + FTS5 search + 9 indexes, migrated to data/blockbuster.db
+- Directory structure: media/{movies,shows,music,games}, subtitles/, data/{avatars,thumbnails}
 
-### Agent Brainstorm & Implementation (4 new agents)
-- Created **database-engineer** — schema design, migrations, query optimization, expand-contract patterns
-- Created **technical-writer** — docs-as-code ownership, API docs, runbooks, changelogs
-- Created **devops-engineer** — IaC, CI/CD, containers, environment provisioning, secrets management
-- Created **growth-engineer** — A/B testing, conversion funnels, referral mechanics, growth experiments
+### Security Fixes (COMPLETE)
+- SKIP_AUTH now blocked in production mode
+- JWT_SECRET & SIGNING_SECRET replaced with strong 64-char random hex
+- Startup validation blocks weak secrets in production (exits with FATAL)
+- jwt.verify() pinned to HS256 (prevents `none` algorithm bypass)
+- CSP expanded: connect-src, font-src, object-src, base-uri, worker-src, upgrade-insecure-requests
 
-### 12 New Commands
-- `/migrate` — database migration lifecycle (create, run, rollback, validate)
-- `/debug` — structured debugging: reproduce → isolate → classify → root cause → fix → verify
-- `/env` — environment variable audit, sync, and validation across environments
-- `/load-test` — performance testing with p50/p95/p99 latency reporting
-- `/deps` — dependency security audit + outdated package upgrade workflow
-- `/rollback` — explicit versioned rollback with optional migration revert
-- `/new-model` — scaffold data model + migration + seed data + types as a unit
-- `/new-service` — scaffold microservice with Dockerfile, health endpoint, logging
-- `/snapshot` — visual regression testing via Playwright screenshots
-- `/instrument` — add structured logging, distributed tracing, and metrics
-- `/changelog` — generate changelog from conventional commits
-- `/feature-flag` — create, toggle, audit, and retire feature flags
+### Documentation (COMPLETE)
+- `docs/prd.md` — Full PRD: 3 personas, 16 features, 7 user flows, launch checklist
+- `docs/design-system.md` — Design system (colors, typography, 12 component specs, animations)
+- `docs/screen-specs.md` — Wireframes for all 10 screens
+- `docs/frontend-architecture.md` — 20 components, 9 hooks, API client, state management
+- `docs/security.md` — 12 threat vectors, 50+ test cases, implementation review
 
-### 8 New Skills
-- `contract-testing` — consumer-driven API contract patterns (Pact, OpenAPI)
-- `database-migration-patterns` — expand-contract, zero-downtime migrations
-- `api-versioning` — breaking change governance, deprecation protocol, sunset dates
-- `feature-flags` — flag lifecycle, naming, testing, debt prevention
-- `caching-strategy` — CDN vs app vs DB cache, invalidation patterns, key design
-- `chaos-engineering` — failure mode validation, resilience patterns
-- `testing-strategy` — test pyramid enforcement, mock vs real, coverage philosophy
-- `state-management-patterns` — local vs global vs server state decision framework
+### Background Agents (may have completed after session ended)
+- **Backend Lead**: Building Phase 2 — media scanner service, media/admin API endpoints, FTS5 search, thumbnail generation. Check if `backend/src/services/media-scanner.ts` and `backend/src/routes/media.ts` exist.
+- **Lead Designer**: Blockbuster Video rebrand — updating design system to blue (#0a1628) / yellow (#FFD100) palette inspired by the classic Blockbuster Video store. Check `docs/design-system.md` and `frontend/src/app/globals.css` for updates.
 
-### New Docs & Config
-- `docs/runbook.md` — operational procedures for restart, DB ops, cache, incidents, backup
-- `docs/data-model.md` — entity-relationship template with field definitions
-- `docs/adr/0000-template.md` — Architecture Decision Record template
-- `.github/PULL_REQUEST_TEMPLATE.md` — standardized PR descriptions
-- `.github/ISSUE_TEMPLATE/bug_report.md` — bug report template
-- `.github/ISSUE_TEMPLATE/feature_request.md` — feature request template
-- `CONTRIBUTING.md` — branch naming, commit format, PR requirements, code review SLAs
+**To verify if background agents completed:**
+```bash
+# Check if media scanner exists (Phase 2 backend)
+ls backend/src/services/media-scanner.ts 2>/dev/null && echo "Phase 2 backend: DONE" || echo "Phase 2 backend: NOT DONE"
+
+# Check if Blockbuster rebrand was applied (look for blue/yellow colors)
+grep -l "FFD100\|0a1628\|blockbuster" frontend/src/app/globals.css && echo "Rebrand: DONE" || echo "Rebrand: NOT DONE"
+```
+
+---
 
 ## What's Working
-- 21 agent files in `.claude/agents/` — full product + ops + data team
-- 34 slash commands in `.claude/commands/`
-- 16 skills in `.claude/skills/`
-- 8 docs files covering architecture, API, deployment, on-call, runbook, data model, ADR
-- GitHub templates for PRs and issues
-- CLAUDE.md lists all 21 agents and all commands
-- `/autobuild` autonomous build loop with persistent state tracking
-- CI workflow has health-check + auto-rollback jobs (commented, ready to configure)
+- `npm run dev` starts frontend (3000) + backend (4000)
+- `curl localhost:4000/api/health` returns OK
+- SQLite database at data/blockbuster.db with all tables
+- All three packages compile cleanly
+- Security middleware stack (CSP, rate limiting, CORS, auth)
 
-## What's Broken / In Progress
-- CI health-check/auto-rollback/notify jobs are commented out — need project-specific URLs and webhook config
-- `docs/oncall-setup.md` has placeholder `{{BASE_URL}}` values — configure per project
-- `docs/data-model.md` has example entities — replace with actual project schema
+## What's Broken / Incomplete
+- Frontend has placeholder page only — no real UI screens yet
+- Backend has health endpoint only (unless Phase 2 agent finished)
+- No media files in library yet (directories empty — add your .mp4s to media/movies/ etc.)
+- Auth is stubbed (SKIP_AUTH=true for dev)
+- If designer agent finished the rebrand, the frontend engineer still needs to build the Netflix-style home page with the new Blockbuster theme
 
-## Next Steps
-1. Use `/setup` to initialize a new project from this template
-2. Run `/autobuild` to autonomously plan and build the first feature
-3. Or use the manual workflow: `/plan` → `/ship` → `/review`
-4. Configure `docs/oncall-setup.md` with real health endpoints and webhook URLs
-5. Uncomment CI workflow jobs in `.github/workflows/ci.yml` and set `HEALTH_URL` and `SLACK_WEBHOOK_URL` repository variables
-6. Configure MCP servers per `docs/mcp-setup.md` for device testing
-7. Define brand voice and platform priorities for the social-strategist agent
+---
 
-## Architecture
-- Template project with agent-first workflow
-- 21 specialized agents in `.claude/agents/`
-- 34 slash commands in `.claude/commands/`
-- 16 skills in `.claude/skills/`
-- MCP integration for device testing, browser automation, Figma, Gmail, Google Calendar
-- CI pipeline with health-check and auto-rollback capability
+## Next Steps (in priority order)
 
-## Key Files
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | Project conventions, all agents, all commands |
-| `HardRules.md` | Non-negotiable AI behavior rules |
-| `Features.md` | Feature tracking board |
-| `NextSteps.md` | This file — session handoff document |
-| `CONTRIBUTING.md` | Contributor guidelines |
-| `docs/oncall-setup.md` | On-call monitoring configuration |
-| `docs/runbook.md` | Operational procedures |
-| `docs/data-model.md` | Database schema documentation |
-| `docs/adr/0000-template.md` | Architecture Decision Record template |
-| `docs/mcp-setup.md` | MCP server configuration guide |
-| `.github/workflows/ci.yml` | CI pipeline with health-check + auto-rollback |
+### Immediate (Phase 2 completion)
+1. **Verify Phase 2 agent output** — Check if media scanner + API routes were created and compile
+2. **If NOT done**: Rebuild media scanner + API routes per plan
+3. **If done**: Test scanner by adding sample .mp4 files and hitting `POST /api/media/scan`
+4. **Verify Blockbuster rebrand** — Check if designer updated globals.css with blue/yellow theme
+5. **If NOT done**: Update design tokens to Blockbuster Video palette (blue bg, yellow accents)
+
+### Build Phase 2 Frontend
+6. Build Netflix-style home page with Blockbuster Video theme (horizontal scroll rows by category)
+7. Build media detail page (poster, description, genres, episodes)
+8. Build search bar with FTS5 debounced search
+9. Build admin metadata UI (list + edit form)
+10. Build responsive layout (mobile grid + desktop scroll rows)
+
+Use agents: `frontend-engineer` for UI, `lead-designer` for review, `senior-frontend-engineer` for complex components.
+
+### Phase 3: Video Player & Streaming
+11. Signed media URL system (HMAC-SHA256)
+12. Stream endpoint with HTTP 206 range requests
+13. Plyr.io + HLS.js player component with blob URLs
+14. Subtitle loading (SRT→VTT auto-conversion)
+15. Video modes (fullscreen, half-screen, PiP)
+16. Anti-download protections
+17. Music player + persistent mini-player
+18. Episode navigation
+
+### Phase 4: Auth & User System
+19. Email login flow (JWT + Cloudflare Access stub)
+20. User profiles (name, avatar upload)
+21. Watch history tracking (position every 10s)
+22. Continue Watching row
+23. Like/dislike ratings
+
+### Phase 5–8: See plan file
+Full details in `/home/karen/.claude/plans/calm-churning-codd.md`
+
+---
+
+## Architecture Reference
+```
+Monorepo (npm workspaces)
+├── frontend/          — Next.js 15 (port 3000) — proxies /api/* to backend
+├── backend/           — Express + Socket.io (port 4000)
+├── shared/            — @blockbuster/shared TypeScript types
+├── media/             — Your media files go here
+├── subtitles/         — .srt and .vtt files
+├── data/              — SQLite DB, avatars, thumbnails
+└── docs/              — PRD, design system, screen specs, security, architecture
+```
