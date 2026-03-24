@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Hls from 'hls.js';
-import { PlayerControls } from './PlayerControls';
+import { PlayerControls, type CommentMarker } from './PlayerControls';
 import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
 import type { SubtitleTrack } from './SubtitleSelector';
 
@@ -29,6 +29,10 @@ interface VideoPlayerProps {
   /** Intro skip markers (in seconds) */
   introStart?: number;
   introEnd?: number;
+  /** Comment markers for the seek bar */
+  commentMarkers?: CommentMarker[];
+  /** Content rendered above the controls (e.g., comments overlay) */
+  overlayContent?: React.ReactNode;
 }
 
 export function VideoPlayer({
@@ -47,6 +51,8 @@ export function VideoPlayer({
   videoRef: externalVideoRef,
   introStart,
   introEnd,
+  commentMarkers,
+  overlayContent,
 }: VideoPlayerProps) {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
@@ -558,7 +564,11 @@ export function VideoPlayer({
           onBack={onBack ?? (() => {})}
           onShowHelp={() => setShowHelp(true)}
           extraControls={extraControls}
+          commentMarkers={commentMarkers}
         />
+
+        {/* Overlay content (e.g., timed comments) */}
+        {overlayContent}
 
         {/* Skip Intro button */}
         {showSkipIntro && (

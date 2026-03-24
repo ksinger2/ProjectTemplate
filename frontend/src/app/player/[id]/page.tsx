@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Loader2, Play, X } from 'lucide-react';
@@ -11,6 +11,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { WatchTogetherOverlay } from '@/components/player/WatchTogetherOverlay';
 import { EmojiPicker } from '@/components/player/EmojiPicker';
 import { EmojiBurstOverlay, useEmojiBurst } from '@/components/player/EmojiBurst';
+import { CommentsOverlay, type TimedComment } from '@/components/player/CommentsOverlay';
+import { CommentInput } from '@/components/player/CommentInput';
+import type { CommentMarker } from '@/components/player/PlayerControls';
 
 // Dynamic import -- no SSR for the video player
 const VideoPlayer = dynamic(
@@ -219,6 +222,10 @@ export default function PlayerPage() {
   const videoElRef = useRef<HTMLVideoElement>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const syncLockRef = useRef(false); // prevent recursive sync events
+
+  // Timed comments
+  const [comments, setComments] = useState<TimedComment[]>([]);
+  const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
 
   // Emoji burst
   const { emojis, addEmoji } = useEmojiBurst();
@@ -530,6 +537,58 @@ export default function PlayerPage() {
     };
   }, [id, episodeId]);
 
+  // ---------- Fetch timed comments ----------
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    async function fetchComments() {
+      try {
+        const url = episodeId
+          ? `/api/comments/${id}?episodeId=${episodeId}`
+          : `/api/comments/${id}`;
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled && json.success && Array.isArray(json.data)) {
+          setComments(json.data);
+        }
+      } catch {
+        // Comments are optional
+      }
+    }
+
+    fetchComments();
+    return () => { cancelled = true; };
+  }, [id, episodeId]);
+
+  // ---------- Track current time for comments ----------
+  useEffect(() => {
+    const video = videoElRef.current;
+    if (!video) return;
+
+    const onTimeUpdate = () => setPlayerCurrentTime(video.currentTime);
+    video.addEventListener('timeupdate', onTimeUpdate);
+    return () => video.removeEventListener('timeupdate', onTimeUpdate);
+  }, [streamUrl]); // re-attach when stream loads
+
+  // ---------- Handle new comment added ----------
+  const handleCommentAdded = useCallback((comment: TimedComment) => {
+    setComments((prev) => [...prev, comment]);
+  }, []);
+
+  // ---------- Build comment markers for seek bar ----------
+  const commentMarkers: CommentMarker[] = useMemo(
+    () =>
+      comments.map((c) => ({
+        id: c.id,
+        timestampSeconds: c.timestampSeconds,
+        text: c.text,
+        displayName: c.displayName,
+      })),
+    [comments],
+  );
+
   // ---------- Position update handler (every 10s via VideoPlayer) ----------
   const handlePositionUpdate = useCallback(
     (positionSeconds: number) => {
@@ -692,6 +751,13 @@ export default function PlayerPage() {
             onSyncPause={handleSyncPause}
             onSyncSeek={handleSyncSeek}
             videoRef={videoElRef}
+            commentMarkers={commentMarkers}
+            overlayContent={
+              <CommentsOverlay
+                comments={comments}
+                currentTime={playerCurrentTime}
+              />
+            }
           />
 
           {/* Watch Together overlay */}
@@ -707,6 +773,16 @@ export default function PlayerPage() {
 
           {/* Emoji burst animations */}
           {isWatchTogether && <EmojiBurstOverlay emojis={emojis} />}
+
+          {/* Timed comment input */}
+          <div className="absolute bottom-4 left-4 right-4 z-30">
+            <CommentInput
+              mediaId={id}
+              episodeId={episodeId}
+              currentTime={playerCurrentTime}
+              onCommentAdded={handleCommentAdded}
+            />
+          </div>
 
           {/* Next episode auto-advance overlay */}
           {showNextOverlay && nextEpisode && (

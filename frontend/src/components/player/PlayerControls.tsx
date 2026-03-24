@@ -20,6 +20,13 @@ import { SubtitleSelector, type SubtitleTrack } from './SubtitleSelector';
 import { cn } from '@/lib/utils';
 import type { ViewMode } from './VideoPlayer';
 
+export interface CommentMarker {
+  id: string;
+  timestampSeconds: number;
+  text: string;
+  displayName: string;
+}
+
 interface PlayerControlsProps {
   title: string;
   isPlaying: boolean;
@@ -49,6 +56,8 @@ interface PlayerControlsProps {
   onShowHelp: () => void;
   /** Extra controls (e.g., emoji picker) injected into the bottom control bar */
   extraControls?: React.ReactNode;
+  /** Comment markers on the seek bar */
+  commentMarkers?: CommentMarker[];
 }
 
 function formatTime(seconds: number): string {
@@ -90,12 +99,14 @@ export function PlayerControls({
   onBack,
   onShowHelp,
   extraControls,
+  commentMarkers = [],
 }: PlayerControlsProps) {
   const [showVolume, setShowVolume] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekTime, setSeekTime] = useState(0);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState(0);
+  const [hoveredMarker, setHoveredMarker] = useState<CommentMarker | null>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -270,6 +281,31 @@ export function PlayerControls({
               style={{ width: `${progress}%` }}
             />
           </div>
+
+          {/* Comment markers */}
+          {duration > 0 && commentMarkers.map((marker) => {
+            const pos = (marker.timestampSeconds / duration) * 100;
+            return (
+              <div
+                key={marker.id}
+                className="absolute top-1/2 -translate-y-1/2 w-1 h-1 bg-bb-accent rounded-full pointer-events-auto z-[1]"
+                style={{ left: `${pos}%` }}
+                onMouseEnter={() => setHoveredMarker(marker)}
+                onMouseLeave={() => setHoveredMarker(null)}
+              />
+            );
+          })}
+
+          {/* Comment marker tooltip */}
+          {hoveredMarker && duration > 0 && (
+            <div
+              className="absolute -top-12 -translate-x-1/2 bg-card text-foreground text-xs px-3 py-1.5 rounded shadow-lg pointer-events-none z-20 max-w-[200px]"
+              style={{ left: `${(hoveredMarker.timestampSeconds / duration) * 100}%` }}
+            >
+              <p className="text-bb-accent font-semibold truncate">{hoveredMarker.displayName}</p>
+              <p className="truncate">{hoveredMarker.text}</p>
+            </div>
+          )}
 
           {/* Thumb */}
           <div

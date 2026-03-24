@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Film, Tv, Music, Gamepad2, Pencil, Loader2, RefreshCw, X, List,
+  Search, Film, Tv, Music, Gamepad2, Pencil, Loader2, RefreshCw, X, List, Upload,
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -269,18 +270,26 @@ export default function AdminPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">Admin: Media Library</h1>
-          <Button
-            onClick={handleScan}
-            disabled={isScanning}
-            className="w-fit"
-          >
-            {isScanning ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-            {isScanning ? 'Scanning...' : 'Scan Library'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/upload">
+              <Button variant="outline" className="w-fit">
+                <Upload className="size-4" />
+                Upload Media
+              </Button>
+            </Link>
+            <Button
+              onClick={handleScan}
+              disabled={isScanning}
+              className="w-fit"
+            >
+              {isScanning ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4" />
+              )}
+              {isScanning ? 'Scanning...' : 'Scan Library'}
+            </Button>
+          </div>
         </div>
 
         {/* Scan message */}
