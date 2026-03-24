@@ -48,7 +48,7 @@ Monorepo (npm workspaces)
     ├── avatars/       — User profile images
     └── thumbnails/    — Auto-generated poster frames
 ```
-For detailed architecture docs, see @docs/architecture.md
+For detailed architecture docs, see `docs/architecture.md`
 
 ## Key Conventions
 - Follow existing patterns in the codebase before introducing new ones
@@ -58,7 +58,7 @@ For detailed architecture docs, see @docs/architecture.md
 - Genres and keywords stored as JSON arrays in SQLite text columns
 - Use Drizzle ORM for all database queries (no raw SQL except FTS5)
 - Frontend uses TanStack Query for server state, Zustand for client state
-- All components follow the design system in @docs/design-system.md
+- All components follow the design system in `docs/design-system.md`
 
 ## How to Run
 ```bash
@@ -78,7 +78,7 @@ npm test -w frontend # Frontend tests only
 ```
 
 ## How to Deploy
-See @docs/deployment.md — Docker Compose for home server / NAS deployment.
+See `docs/deployment.md` — Docker Compose for home server / NAS deployment.
 
 ## Session Protocol
 1. Read `NextSteps.md` before starting work — it has the latest context
@@ -149,14 +149,15 @@ This project includes a full product development team in `.claude/agents/`:
 ## Key Documentation
 | Doc | Purpose |
 |-----|---------|
-| @docs/prd.md | Product requirements document |
-| @docs/design-system.md | Visual design language and component specs |
-| @docs/screen-specs.md | Screen wireframes and interaction specs |
-| @docs/frontend-architecture.md | Frontend directory structure, components, hooks |
-| @docs/security.md | Threat model, content protection, auth spec |
-| @docs/architecture.md | System architecture |
-| @docs/data-model.md | Database schema |
-| @docs/api.md | API endpoint documentation |
+| `docs/prd.md` | Product requirements document |
+| `docs/design-system.md` | Visual design language and component specs |
+| `docs/screen-specs.md` | Screen wireframes and interaction specs |
+| `docs/frontend-architecture.md` | Frontend directory structure, components, hooks |
+| `docs/security.md` | Threat model, content protection, auth spec |
+| `docs/architecture.md` | System architecture (template — needs filling in) |
+| `docs/data-model.md` | Database schema (template — needs filling in) |
+| `docs/api.md` | API endpoint documentation (template — needs filling in) |
+| `docs/deployment.md` | Deployment guide (template — needs filling in) |
 
 ## Browser Automation (Chrome CDP)
 

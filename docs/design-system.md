@@ -6,31 +6,34 @@ Version 1.0 -- Last updated 2026-03-23
 
 ## 1. Color Palette
 
-### Backgrounds
+### Backgrounds (Blockbuster Video-inspired deep navy blue)
 
 | Token             | Value     | Usage                              |
 |-------------------|-----------|------------------------------------|
-| `--bb-bg`         | `#141414` | Page background, app shell         |
-| `--bb-surface`    | `#1f1f1f` | Cards, modals, drawers, popovers   |
-| `--bb-elevated`   | `#2a2a2a` | Elevated cards, dropdowns, tooltips|
-| `--bb-overlay`    | `rgba(0,0,0,0.7)` | Scrim behind modals, player overlay |
+| `--bb-bg`         | `#0a1628` | Page background, app shell         |
+| `--bb-nav`        | `#061020` | Navigation bar, darkest layer      |
+| `--bb-surface`    | `#132743` | Cards, modals, drawers, popovers   |
+| `--bb-elevated`   | `#1a3558` | Elevated cards, dropdowns, tooltips|
+| `--bb-overlay`    | `rgba(6,16,32,0.85)` | Scrim behind modals, player overlay |
 
-### Accent / Brand
+### Accent / Brand (Blockbuster Yellow + Blue)
 
 | Token                | Value     | Usage                       |
 |----------------------|-----------|-----------------------------|
-| `--bb-accent`        | `#e50914` | Primary CTA, active states  |
-| `--bb-accent-hover`  | `#b20710` | Hover on primary CTA        |
-| `--bb-accent-pressed`| `#8c0510` | Active/pressed on primary CTA |
+| `--bb-accent`        | `#FFD100` | Primary CTA, highlights, progress bars (Blockbuster Yellow) |
+| `--bb-accent-hover`  | `#E6BC00` | Hover on primary CTA        |
+| `--bb-accent-pressed`| `#CCa700` | Active/pressed on primary CTA |
+| `--bb-blue`          | `#0033A0` | Logo background, brand element (Blockbuster Blue) |
+| `--bb-blue-light`    | `#2563eb` | Links, secondary actions, info states |
 
 ### Text
 
 | Token             | Value     | Usage                                  |
 |-------------------|-----------|-----------------------------------------|
-| `--bb-text`       | `#ffffff` | Primary text, titles, headings          |
-| `--bb-text-secondary` | `#b3b3b3` | Descriptions, metadata, timestamps  |
-| `--bb-text-muted` | `#808080` | Disabled text, placeholders, captions   |
-| `--bb-text-inverse`| `#141414`| Text on light/accent backgrounds        |
+| `--bb-text`       | `#f1f5f9` | Primary text, titles, headings          |
+| `--bb-text-secondary` | `#94a3b8` | Descriptions, metadata, timestamps  |
+| `--bb-text-muted` | `#64748b` | Disabled text, placeholders, captions   |
+| `--bb-text-inverse`| `#0a1628`| Text on yellow/light backgrounds        |
 
 ### Semantic
 
