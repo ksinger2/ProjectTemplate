@@ -72,7 +72,7 @@ router.post('/sessions', (req: AuthRequest, res: Response) => {
 // GET /api/sessions/:id — Get session with participants
 router.get('/sessions/:id', (req: AuthRequest, res: Response) => {
   try {
-    const sessionId = req.params.id;
+    const sessionId = req.params.id as string;
 
     const session = db
       .select()
@@ -134,7 +134,7 @@ router.get('/sessions/:id', (req: AuthRequest, res: Response) => {
 router.post('/sessions/:id/invite', (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
-    const sessionId = req.params.id;
+    const sessionId = req.params.id as string;
     const { friendId } = req.body as { friendId: string };
 
     if (!friendId) {
@@ -198,7 +198,7 @@ router.post('/sessions/:id/invite', (req: AuthRequest, res: Response) => {
 router.delete('/sessions/:id', (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
-    const sessionId = req.params.id;
+    const sessionId = req.params.id as string;
 
     const session = db
       .select()

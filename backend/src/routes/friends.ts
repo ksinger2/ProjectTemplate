@@ -179,7 +179,7 @@ router.post('/friends', authMiddleware, (req: AuthRequest, res: Response) => {
 router.post('/friends/:id/accept', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const friendshipId = req.params.id;
+    const friendshipId = req.params.id as string;
 
     const row = db
       .select()
@@ -223,7 +223,7 @@ router.post('/friends/:id/accept', authMiddleware, (req: AuthRequest, res: Respo
 router.post('/friends/:id/reject', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const friendshipId = req.params.id;
+    const friendshipId = req.params.id as string;
 
     const row = db
       .select()
@@ -256,7 +256,7 @@ router.post('/friends/:id/reject', authMiddleware, (req: AuthRequest, res: Respo
 router.post('/friends/:id/block', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const friendshipId = req.params.id;
+    const friendshipId = req.params.id as string;
 
     const row = db
       .select()
@@ -292,7 +292,7 @@ router.post('/friends/:id/block', authMiddleware, (req: AuthRequest, res: Respon
 router.delete('/friends/:id', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const friendshipId = req.params.id;
+    const friendshipId = req.params.id as string;
 
     const row = db
       .select()

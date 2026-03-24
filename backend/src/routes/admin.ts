@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, sqlite } from '../db';
 import { schema } from '../db';
-import { eq } from 'drizzle-orm';
+import { eq, asc, sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -26,12 +26,42 @@ function parseMedia(row: typeof schema.media.$inferSelect) {
 
 // ---- GET /api/admin/media — List all media for admin ----
 
-router.get('/admin/media', (_req: Request, res: Response) => {
+router.get('/admin/media', (req: Request, res: Response) => {
   try {
-    const rows = db.select().from(schema.media).all();
-    const items = rows.map(parseMedia);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 50));
 
-    res.json({ success: true, data: items });
+    // Get total count
+    const countResult = db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.media)
+      .get();
+
+    const total = countResult?.count || 0;
+
+    // Get paginated results
+    const offset = (page - 1) * pageSize;
+    const rows = db
+      .select()
+      .from(schema.media)
+      .orderBy(asc(schema.media.title))
+      .limit(pageSize)
+      .offset(offset)
+      .all();
+
+    const items = rows.map(parseMedia);
+    const hasMore = offset + pageSize < total;
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        total,
+        page,
+        pageSize,
+        hasMore,
+      },
+    });
   } catch (err: any) {
     console.error('[admin/media] Error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to fetch media' });
