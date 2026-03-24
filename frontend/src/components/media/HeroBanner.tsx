@@ -72,6 +72,7 @@ export function HeroBanner({ media }: HeroBannerProps) {
             alt=""
             className="w-full h-full object-cover"
             aria-hidden="true"
+            fetchPriority="high"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-bb-blue/40 to-background" />

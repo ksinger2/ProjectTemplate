@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Play, Film } from 'lucide-react';
+import { Play, Film, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Media {
@@ -80,7 +80,11 @@ export function MediaCard({ media, onPlay, size = 'md' }: MediaCardProps) {
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-bb-blue to-surface flex items-center justify-center">
-            <Film className="w-10 h-10 text-muted-foreground/50" />
+            {media.type === 'game' ? (
+              <Gamepad2 className="w-10 h-10 text-muted-foreground/50" />
+            ) : (
+              <Film className="w-10 h-10 text-muted-foreground/50" />
+            )}
           </div>
         )}
 

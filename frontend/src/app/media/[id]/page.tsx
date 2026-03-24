@@ -206,8 +206,14 @@ export default function MediaDetailPage() {
       <MediaDetailView
         media={media}
         onPlay={(episodeId) => {
-          // Player navigation will be implemented in a later phase
-          console.log('Play:', media.id, episodeId ? `episode ${episodeId}` : '');
+          if (media.type === 'game') {
+            router.push(`/games/${media.id}`);
+          } else {
+            const url = episodeId
+              ? `/player/${media.id}?episode=${episodeId}`
+              : `/player/${media.id}`;
+            router.push(url);
+          }
         }}
       />
     </main>

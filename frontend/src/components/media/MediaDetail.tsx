@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Play, Share2, Film, Music, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Play, Share2, Film, Music, Users, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeList } from '@/components/media/EpisodeList';
 import { TrackList } from '@/components/media/TrackList';
+import { MediaRow } from '@/components/media/MediaRow';
 import { RatingButtons } from '@/components/profile/RatingButtons';
 import { ShareDialog } from '@/components/social/ShareDialog';
 import { WatchTogetherDialog } from '@/components/social/WatchTogetherDialog';
@@ -93,15 +95,68 @@ function extractArtistFromPath(filePath: string): string {
   return '';
 }
 
+interface RecommendedMedia {
+  id: string;
+  title: string;
+  type: 'movie' | 'show' | 'music' | 'game';
+  posterUrl: string | null;
+  description: string | null;
+  year: number | null;
+  genres: string[];
+  keywords: string[];
+  durationSeconds: number | null;
+  filePath: string;
+  codec: string | null;
+  resolution: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
   const [imgError, setImgError] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState<RecommendedMedia[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
   const thumbnailUrl = `/api/media/${media.id}/thumbnail`;
   const showPoster = media.posterUrl !== null && !imgError;
   const duration = formatDuration(media.durationSeconds);
   const isShow = media.type === 'show';
   const isMusic = media.type === 'music';
+  const isGame = media.type === 'game';
+
+  // Fetch "More Like This" recommendations
+  useEffect(() => {
+    let cancelled = false;
+    setRecsLoading(true);
+
+    async function fetchRecs() {
+      try {
+        const res = await fetch(`/api/recommendations/because/${media.id}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          setRecommendations([]);
+          return;
+        }
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          if (!cancelled) {
+            setRecommendations(
+              json.data.map((item: { media: RecommendedMedia }) => item.media),
+            );
+          }
+        }
+      } catch {
+        if (!cancelled) setRecommendations([]);
+      } finally {
+        if (!cancelled) setRecsLoading(false);
+      }
+    }
+
+    fetchRecs();
+    return () => { cancelled = true; };
+  }, [media.id]);
 
   const metaParts: string[] = [];
   if (media.year) metaParts.push(String(media.year));
@@ -124,11 +179,14 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover object-center"
+            fetchPriority="high"
             onError={() => setImgError(true)}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-bb-blue to-card flex items-center justify-center">
-            {isMusic ? (
+            {isGame ? (
+              <Gamepad2 className="w-24 h-24 text-muted-foreground/30" />
+            ) : isMusic ? (
               <Music className="w-24 h-24 text-muted-foreground/30" />
             ) : (
               <Film className="w-24 h-24 text-muted-foreground/30" />
@@ -169,7 +227,17 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-3 flex-wrap">
-            {!isMusic && (
+            {isGame ? (
+              <Link href={`/games/${media.id}`}>
+                <Button
+                  size="lg"
+                  className="bg-primary text-primary-foreground font-semibold px-6 h-10 rounded-md hover:bg-bb-accent-hover"
+                >
+                  <Gamepad2 className="w-5 h-5 mr-1" />
+                  Play Game
+                </Button>
+              </Link>
+            ) : !isMusic ? (
               <Button
                 size="lg"
                 className="bg-primary text-primary-foreground font-semibold px-6 h-10 rounded-md hover:bg-bb-accent-hover"
@@ -178,7 +246,7 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
                 <Play className="w-5 h-5 mr-1 fill-current" />
                 Play
               </Button>
-            )}
+            ) : null}
 
             <RatingButtons mediaId={media.id} />
 
@@ -192,7 +260,7 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
               <Share2 className="w-4 h-4" />
             </Button>
 
-            {!isMusic && (
+            {!isMusic && !isGame && (
               <Button
                 variant="outline"
                 className="border-border bg-secondary/50 hover:bg-secondary text-foreground gap-1.5"
@@ -249,8 +317,8 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           </div>
         )}
 
-        {/* Episode list for shows */}
-        {isShow && media.episodes && media.episodes.length > 0 && (
+        {/* Episode list for shows (not games) */}
+        {isShow && !isGame && media.episodes && media.episodes.length > 0 && (
           <>
             <div className="border-t border-border" />
             <EpisodeList
@@ -260,8 +328,8 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           </>
         )}
 
-        {/* Track list for music */}
-        {isMusic && media.episodes && media.episodes.length > 0 && (
+        {/* Track list for music (not games) */}
+        {isMusic && !isGame && media.episodes && media.episodes.length > 0 && (
           <>
             <div className="border-t border-border" />
             <TrackList
@@ -280,8 +348,8 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           </>
         )}
 
-        {/* Single music file (no episodes/tracks) */}
-        {isMusic && (!media.episodes || media.episodes.length === 0) && (
+        {/* Single music file (no episodes/tracks, not games) */}
+        {isMusic && !isGame && (!media.episodes || media.episodes.length === 0) && (
           <>
             <div className="border-t border-border" />
             <TrackList
@@ -301,10 +369,13 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
           </>
         )}
 
-        {/* More Like This placeholder */}
+        {/* More Like This */}
         <div className="border-t border-border pt-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">More Like This</h2>
-          <p className="text-muted-foreground text-sm">Coming soon</p>
+          {recsLoading ? (
+            <MediaRow title="More Like This" items={[]} isLoading />
+          ) : recommendations.length > 0 ? (
+            <MediaRow title="More Like This" items={recommendations} />
+          ) : null}
         </div>
       </div>
 

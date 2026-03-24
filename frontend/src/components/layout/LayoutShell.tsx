@@ -12,7 +12,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!isLoginPage && <NavBar />}
-      <main className="flex-1 pb-14 md:pb-0">{children}</main>
+      <main id="main-content" className="flex-1 pb-14 md:pb-0">{children}</main>
       {!isLoginPage && <MiniPlayer />}
       {!isLoginPage && <MobileNav />}
     </>

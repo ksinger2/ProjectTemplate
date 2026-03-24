@@ -22,6 +22,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Blockbuster — Your Personal Video Store",
   description: "Private media streaming platform inspired by the classic Blockbuster Video experience",
+  manifest: "/manifest.json",
+  other: {
+    "theme-color": "#FFD100",
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +39,12 @@ export default function RootLayout({
       className={`dark ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bb-background text-white">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-bb-accent focus:text-black focus:font-semibold focus:rounded-md focus:outline-none"
+        >
+          Skip to content
+        </a>
         <noscript>
           <style>{"#__next{display:none!important}"}</style>
           <div style={{ textAlign: 'center', padding: 50, fontFamily: 'sans-serif' }}>
