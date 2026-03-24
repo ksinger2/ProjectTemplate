@@ -15,10 +15,10 @@ import { RecommendationsInbox } from '@/components/social/RecommendationsInbox';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/shows', label: 'Shows', icon: Tv },
-  { href: '/movies', label: 'Movies', icon: Film },
-  { href: '/music', label: 'Music', icon: Music },
-  { href: '/games', label: 'Games', icon: Gamepad2 },
+  { href: '/search?type=show', label: 'Shows', icon: Tv },
+  { href: '/search?type=movie', label: 'Movies', icon: Film },
+  { href: '/search?type=music', label: 'Music', icon: Music },
+  { href: '/search?type=game', label: 'Games', icon: Gamepad2 },
 ] as const;
 
 export function NavBar() {

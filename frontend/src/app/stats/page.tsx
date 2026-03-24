@@ -117,7 +117,7 @@ export default function StatsPage() {
     stats &&
     stats.totalHours === 0 &&
     stats.titlesCompleted === 0 &&
-    stats.top10.length === 0;
+    (!stats.top10 || stats.top10.length === 0);
 
   // Find max genre hours for bar scaling
   const maxGenreHours = stats?.topGenres?.reduce((m, g) => Math.max(m, g.hours), 0) ?? 1;
@@ -343,7 +343,7 @@ export default function StatsPage() {
                   <BarChart3 className="size-5" />
                   <span className="text-sm font-medium">Your Top 10</span>
                 </div>
-                {stats.top10.length === 0 ? (
+                {!stats.top10 || stats.top10.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No data yet</p>
                 ) : (
                   <div className="space-y-2">
