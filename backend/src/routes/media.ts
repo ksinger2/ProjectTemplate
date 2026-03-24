@@ -255,6 +255,18 @@ router.get('/media/:id/episodes', authMiddleware, (req: Request, res: Response) 
   }
 });
 
+// ---- Game helper: find first file with extension in directory ----
+
+function findFileWithExtension(dirPath: string, ext: string): string | null {
+  try {
+    const entries = fs.readdirSync(dirPath);
+    const match = entries.find(f => path.extname(f).toLowerCase() === ext);
+    return match || null;
+  } catch {
+    return null;
+  }
+}
+
 // ---- GET /api/media/:id/game — Serve game HTML ----
 
 router.get('/media/:id/game', authMiddleware, (req: Request, res: Response) => {
@@ -277,7 +289,74 @@ router.get('/media/:id/game', authMiddleware, (req: Request, res: Response) => {
     return;
   }
 
-  // Resolve the requested path within the game directory
+  const gameType = media.gameType || 'html';
+
+  // Flash games: serve Ruffle wrapper HTML
+  if (gameType === 'flash') {
+    const swfFile = findFileWithExtension(media.filePath, '.swf');
+    if (!swfFile) {
+      res.status(404).json({ success: false, error: 'SWF file not found in game directory' });
+      return;
+    }
+    const swfUrl = `./game/${swfFile}`;
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://unpkg.com/@nickytwoshoes/ruffle@0.1.0/dist/ruffle.js"></script>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}#container{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}ruffle-embed{width:100%;height:100%}</style>
+</head><body>
+<div id="container"><ruffle-embed src="${swfUrl}"></ruffle-embed></div>
+</body></html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://unpkg.com; frame-ancestors 'self'",
+    );
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(html);
+    return;
+  }
+
+  // DOS games: serve JS-DOS wrapper HTML
+  if (gameType === 'dos') {
+    const zipFile = findFileWithExtension(media.filePath, '.zip');
+    if (!zipFile) {
+      res.status(404).json({ success: false, error: 'ZIP file not found in game directory' });
+      return;
+    }
+    const zipUrl = `./game/${zipFile}`;
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}#jsdos{width:100vw;height:100vh}</style>
+<script src="https://js-dos.com/v7/build/js-dos.js"></script>
+<link href="https://js-dos.com/v7/build/js-dos.css" rel="stylesheet">
+</head><body>
+<div id="jsdos"></div>
+<script>
+  Dos(document.getElementById("jsdos"), {
+    url: "${zipUrl}",
+    autoStart: true
+  });
+</script>
+</body></html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js-dos.com; style-src 'self' 'unsafe-inline' https://js-dos.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://js-dos.com; frame-ancestors 'self'",
+    );
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(html);
+    return;
+  }
+
+  // HTML games (default): serve files from directory
   const subPath = (req.query.path as string) || 'index.html';
   const safeSub = path.normalize(subPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const filePath = path.join(media.filePath, safeSub);
@@ -303,6 +382,54 @@ router.get('/media/:id/game', authMiddleware, (req: Request, res: Response) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Cache-Control', 'public, max-age=3600');
 
+  res.sendFile(resolvedFile);
+});
+
+// ---- GET /api/media/:id/game/:filename — Serve individual game files ----
+
+router.get('/media/:id/game/:filename', authMiddleware, (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const filename = req.params.filename as string;
+
+  // UUID validation to prevent path traversal
+  if (!/^[a-f0-9-]{36}$/.test(id)) {
+    res.status(400).json({ success: false, error: 'Invalid media ID format' });
+    return;
+  }
+
+  // Reject filenames with path traversal attempts
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    res.status(403).json({ success: false, error: 'Access denied' });
+    return;
+  }
+
+  const media = db.select().from(schema.media).where(eq(schema.media.id, id)).get();
+  if (!media) {
+    res.status(404).json({ success: false, error: 'Media not found' });
+    return;
+  }
+
+  if (media.type !== 'game') {
+    res.status(400).json({ success: false, error: 'Media is not a game' });
+    return;
+  }
+
+  const filePath = path.join(media.filePath, filename);
+
+  // Ensure the resolved path is within the game directory (prevent traversal)
+  const resolvedDir = path.resolve(media.filePath);
+  const resolvedFile = path.resolve(filePath);
+  if (!resolvedFile.startsWith(resolvedDir + path.sep) && resolvedFile !== resolvedDir) {
+    res.status(403).json({ success: false, error: 'Access denied' });
+    return;
+  }
+
+  if (!fs.existsSync(resolvedFile) || !fs.statSync(resolvedFile).isFile()) {
+    res.status(404).json({ success: false, error: 'File not found' });
+    return;
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.sendFile(resolvedFile);
 });
 

@@ -147,6 +147,9 @@ for (const stmt of statements) {
 try { db.exec('ALTER TABLE episodes ADD COLUMN intro_start INTEGER'); } catch {}
 try { db.exec('ALTER TABLE episodes ADD COLUMN intro_end INTEGER'); } catch {}
 
+// Add game_type column to media (idempotent)
+try { db.exec('ALTER TABLE media ADD COLUMN game_type TEXT'); } catch {}
+
 console.log('Database migrated successfully');
 console.log(`Database path: ${dbPath}`);
 

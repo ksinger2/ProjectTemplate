@@ -22,6 +22,7 @@ export const media = sqliteTable('media', {
   filePath: text('file_path').notNull(),
   codec: text('codec'),
   resolution: text('resolution'),
+  gameType: text('game_type'), // 'html' | 'flash' | 'dos' | null
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
   updatedAt: text('updated_at').notNull().default(new Date().toISOString()),
 });

@@ -257,16 +257,39 @@ function parseEpisodePath(filePath: string, showsRoot: string): EpisodeInfo | nu
 
 // ---- Game detection ----
 
-function findGames(gamesDir: string): Array<{ name: string; dirPath: string }> {
-  const games: Array<{ name: string; dirPath: string }> = [];
+function findGames(gamesDir: string): Array<{ name: string; dirPath: string; gameType: 'html' | 'flash' | 'dos' }> {
+  const games: Array<{ name: string; dirPath: string; gameType: 'html' | 'flash' | 'dos' }> = [];
   if (!fs.existsSync(gamesDir)) return games;
 
   const entries = fs.readdirSync(gamesDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const indexPath = path.join(gamesDir, entry.name, 'index.html');
+    const dirPath = path.join(gamesDir, entry.name);
+
+    // HTML games: directory with index.html
+    const indexPath = path.join(dirPath, 'index.html');
     if (fs.existsSync(indexPath)) {
-      games.push({ name: entry.name, dirPath: path.join(gamesDir, entry.name) });
+      games.push({ name: entry.name, dirPath, gameType: 'html' });
+      continue;
+    }
+
+    // DOS games: directory with a .zip file AND jsdos.json config
+    const jsdosConfigPath = path.join(dirPath, 'jsdos.json');
+    if (fs.existsSync(jsdosConfigPath)) {
+      const dirFiles = fs.readdirSync(dirPath);
+      const hasZip = dirFiles.some(f => path.extname(f).toLowerCase() === '.zip');
+      if (hasZip) {
+        games.push({ name: entry.name, dirPath, gameType: 'dos' });
+        continue;
+      }
+    }
+
+    // Flash games: directory containing a .swf file
+    const dirFiles = fs.readdirSync(dirPath);
+    const hasSwf = dirFiles.some(f => path.extname(f).toLowerCase() === '.swf');
+    if (hasSwf) {
+      games.push({ name: entry.name, dirPath, gameType: 'flash' });
+      continue;
     }
   }
   return games;
@@ -629,6 +652,7 @@ function scanGames(gamesDir: string, result: ScanResult): void {
         genres,
         keywords,
         posterUrl,
+        gameType: game.gameType,
         updatedAt: now,
       }).where(eq(schema.media.id, existing.id)).run();
       result.updated++;
@@ -643,6 +667,7 @@ function scanGames(gamesDir: string, result: ScanResult): void {
         genres,
         keywords,
         posterUrl,
+        gameType: game.gameType,
         durationSeconds: null,
         codec: null,
         resolution: null,
