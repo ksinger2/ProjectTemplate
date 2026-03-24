@@ -4,6 +4,27 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Maximize, Minimize, Loader2, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+type GameType = 'html' | 'flash' | 'dos';
+
+function gameTypeLabel(gameType: GameType): string {
+  switch (gameType) {
+    case 'flash': return 'Flash Game';
+    case 'dos': return 'DOS Game';
+    case 'html': return 'HTML5 Game';
+    default: return 'Game';
+  }
+}
+
+function gameTypeBadgeClasses(gameType: GameType): string {
+  switch (gameType) {
+    case 'flash': return 'bg-amber-500/20 text-amber-400';
+    case 'dos': return 'bg-green-500/20 text-green-400';
+    case 'html': return 'bg-blue-500/20 text-blue-400';
+    default: return 'bg-blue-500/20 text-blue-400';
+  }
+}
 
 export default function GamePlayerPage() {
   const params = useParams();
@@ -17,6 +38,7 @@ export default function GamePlayerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameTitle, setGameTitle] = useState<string>('');
+  const [gameType, setGameType] = useState<GameType>('html');
 
   // Fetch media details to get game title
   useEffect(() => {
@@ -36,6 +58,9 @@ export default function GamePlayerPage() {
             return;
           }
           setGameTitle(json.data.title);
+          if (json.data.gameType) {
+            setGameType(json.data.gameType);
+          }
         } else {
           setError('Failed to load game details.');
         }
@@ -139,6 +164,10 @@ export default function GamePlayerPage() {
               {gameTitle}
             </h1>
           )}
+
+          <Badge className={gameTypeBadgeClasses(gameType)}>
+            {gameTypeLabel(gameType)}
+          </Badge>
         </div>
 
         <Button
@@ -155,6 +184,13 @@ export default function GamePlayerPage() {
           )}
         </Button>
       </div>
+
+      {/* DOS keyboard capture note */}
+      {gameType === 'dos' && (
+        <div className="px-4 py-1.5 bg-green-500/10 text-green-400 text-xs text-center shrink-0">
+          Click the game area to capture keyboard input. Press Escape to release.
+        </div>
+      )}
 
       {/* Game iframe container */}
       <div className="flex-1 relative">

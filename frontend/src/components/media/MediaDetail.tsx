@@ -53,6 +53,7 @@ interface Subtitle {
 interface MediaDetail extends Media {
   episodes?: Episode[];
   subtitles?: Subtitle[];
+  gameType?: 'html' | 'flash' | 'dos';
 }
 
 interface MediaDetailProps {
@@ -77,6 +78,24 @@ function typeLabel(type: string): string {
     case 'music': return 'Music';
     case 'game': return 'Game';
     default: return type;
+  }
+}
+
+function gameTypeBadgeLabel(gameType: string): string {
+  switch (gameType) {
+    case 'flash': return 'Flash';
+    case 'dos': return 'DOS';
+    case 'html': return 'HTML5';
+    default: return 'Game';
+  }
+}
+
+function gameTypeBadgeClasses(gameType: string): string {
+  switch (gameType) {
+    case 'flash': return 'bg-amber-500/20 text-amber-400';
+    case 'dos': return 'bg-green-500/20 text-green-400';
+    case 'html': return 'bg-blue-500/20 text-blue-400';
+    default: return 'bg-blue-500/20 text-blue-400';
   }
 }
 
@@ -200,9 +219,16 @@ export function MediaDetailView({ media, onPlay }: MediaDetailProps) {
 
         {/* Title block positioned at bottom of hero */}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-6 md:px-12 md:pb-10">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-2 drop-shadow-lg">
-            {media.title}
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground drop-shadow-lg">
+              {media.title}
+            </h1>
+            {isGame && media.gameType && (
+              <Badge className={cn('shrink-0', gameTypeBadgeClasses(media.gameType))}>
+                {gameTypeBadgeLabel(media.gameType)}
+              </Badge>
+            )}
+          </div>
 
           {/* Metadata line */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
