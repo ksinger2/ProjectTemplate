@@ -112,8 +112,9 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/media');
       const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setMedia(json.data);
+      if (json.success && json.data) {
+        const items = Array.isArray(json.data) ? json.data : json.data.items;
+        setMedia(items || []);
       }
     } catch {
       // silently fail
