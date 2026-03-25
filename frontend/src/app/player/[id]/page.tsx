@@ -13,6 +13,7 @@ import { EmojiPicker } from '@/components/player/EmojiPicker';
 import { EmojiBurstOverlay, useEmojiBurst } from '@/components/player/EmojiBurst';
 import { CommentsOverlay, type TimedComment } from '@/components/player/CommentsOverlay';
 import { CommentInput } from '@/components/player/CommentInput';
+import { LiveChat } from '@/components/player/LiveChat';
 import type { CommentMarker } from '@/components/player/PlayerControls';
 
 // Dynamic import -- no SSR for the video player
@@ -214,6 +215,7 @@ export default function PlayerPage() {
   // Episode support
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
 
   // Watch-together state
@@ -829,6 +831,23 @@ export default function PlayerPage() {
               Watch Together
             </button>
           )}
+
+          {/* Live Chat toggle button */}
+          <button
+            type="button"
+            onClick={() => setIsChatOpen((prev) => !prev)}
+            className="absolute top-16 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+            title="Toggle Live Chat"
+          >
+            💬 Chat
+          </button>
+
+          {/* Live Chat panel */}
+          <LiveChat
+            mediaId={id}
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+          />
 
           {/* Emoji burst animations (visible in both solo and watch-together mode) */}
           <EmojiBurstOverlay emojis={emojis} />
