@@ -1,135 +1,139 @@
 # Blockbuster — Session Handoff
 
 ## Re-initialization Checklist
-When starting a new session, read these files in order:
+When starting a new session, run `/reinit` or read these files in order:
 1. `CLAUDE.md` — Project overview, tech stack, conventions, commands
 2. `HardRules.md` — Non-negotiable behavior rules
 3. `Features.md` — Current feature status by phase
 4. This file (`NextSteps.md`) — What was done, what's next
-5. `/home/karen/.claude/plans/calm-churning-codd.md` — Full 8-phase implementation plan
-
-### Key Design & Requirements Docs (review before building UI)
-- `docs/prd.md` — Product requirements, user personas, acceptance criteria, user flows
-- `docs/design-system.md` — Visual design language (Blockbuster Video blue/yellow theme), component specs
-- `docs/screen-specs.md` — ASCII wireframes for all 10 screens (desktop + mobile)
-- `docs/frontend-architecture.md` — Component inventory (20 components), hooks (9), state management, API client
-- `docs/security.md` — Threat model, content protection spec, 50+ security test cases
 
 ### Key Code Entry Points
-- `backend/src/index.ts` — Express server entry
-- `backend/src/db/schema.ts` — Drizzle ORM table definitions
-- `backend/src/db/migrate.ts` — Database migration (run with `npx ts-node backend/src/db/migrate.ts`)
-- `backend/src/services/media-scanner.ts` — Media library scanner (if Phase 2 agent completed)
-- `backend/src/routes/media.ts` — Media API endpoints (if Phase 2 agent completed)
+- `backend/src/index.ts` — Express server entry (port 4000)
 - `frontend/src/app/layout.tsx` — Root layout
-- `frontend/src/app/globals.css` — Design tokens / Tailwind theme
-- `shared/src/types/` — All TypeScript type definitions
+- `frontend/src/app/globals.css` — Blockbuster store design tokens
+- `backend/src/db/schema.ts` — Drizzle ORM tables (media, episodes, subtitles, users, watchHistory, ratings, friends, comments, sessions)
+- `backend/src/services/media-scanner.ts` — Media library scanner
+- `backend/src/services/recommender.ts` — Recommendations engine
+- `backend/src/routes/` — All API routes (media, admin, stream, auth, users, ratings, comments, upload, stats, friends, sessions, recommendations)
+
+### Running the App
+```bash
+cd ~/Desktop/Blockbuster
+npm run dev                    # Starts backend (4000) + frontend (3001)
+curl -X POST localhost:4000/api/media/scan  # Scan media library
+```
+Frontend runs on **port 3001** (not 3000 — 3000 is used by another project).
 
 ---
 
-## What Was Done (Session 1 — 2026-03-23)
+## What Was Done (Session 2 — 2026-03-24/25)
 
-### Phase 1: Project Scaffolding (COMPLETE)
-- Monorepo with npm workspaces (frontend, backend, shared)
-- Next.js 15 + Tailwind + shadcn/ui (12 components) — dark theme
-- Express + TypeScript + Socket.io — security middleware, rate limiting, health endpoint
-- Shared TypeScript types (media, user, social, watch, API)
-- SQLite + Drizzle ORM — 10 tables + FTS5 search + 9 indexes, migrated to data/blockbuster.db
-- Directory structure: media/{movies,shows,music,games}, subtitles/, data/{avatars,thumbnails}
+### All 8 Core Phases — COMPLETE
+- Phase 1: Monorepo scaffolding (Next.js + Express + SQLite + Drizzle)
+- Phase 2: Media scanner, Netflix-style UI, FTS5 search, admin CRUD
+- Phase 3: Video player (HLS.js, PiP, half-screen, subtitles, anti-download)
+- Phase 4: Auth (JWT access+refresh tokens), profiles, watch history, ratings
+- Phase 5: Recommendations engine (genre/keyword scoring, cold start)
+- Phase 6: Friends system, share recommendations, inbox with badge
+- Phase 7: Watch Together (Socket.io sync, emoji reactions with burst animation)
+- Phase 8: Games (HTML5/Flash/DOS), PWA, accessibility, security hardening
 
-### Security Fixes (COMPLETE)
-- SKIP_AUTH now blocked in production mode
-- JWT_SECRET & SIGNING_SECRET replaced with strong 64-char random hex
-- Startup validation blocks weak secrets in production (exits with FATAL)
-- jwt.verify() pinned to HS256 (prevents `none` algorithm bypass)
-- CSP expanded: connect-src, font-src, object-src, base-uri, worker-src, upgrade-insecure-requests
+### Bonus Features — COMPLETE
+- **Docker + Caddy HTTPS** — Dockerfiles, docker-compose.yml, Caddyfile, .env.production
+- **Skip Intro** — admin sets timestamps, player shows Skip Intro button
+- **Playback Stats Dashboard** — "Your Blockbuster Wrapped" at /stats
+- **Admin Upload Page** — drag-drop file upload at /admin/upload
+- **Timed Comments** — pinned to timestamps, yellow dots on seek bar, toggle ON/OFF
+- **Live Chat** — real-time chat panel in player via Socket.io
+- **Flash Games (Ruffle)** — .swf files play via Ruffle WASM emulator
+- **DOS Games (JS-DOS)** — .zip bundles play via browser DOSBox
+- **Blockbuster Store Aesthetic** — carpet texture, neon strips, DVD case cards, shelf rows
 
-### Documentation (COMPLETE)
-- `docs/prd.md` — Full PRD: 3 personas, 16 features, 7 user flows, launch checklist
-- `docs/design-system.md` — Design system (colors, typography, 12 component specs, animations)
-- `docs/screen-specs.md` — Wireframes for all 10 screens
-- `docs/frontend-architecture.md` — 20 components, 9 hooks, API client, state management
-- `docs/security.md` — 12 threat vectors, 50+ test cases, implementation review
+### Design & Branding
+- Real Blockbuster torn-ticket logo (PNG with transparent bg)
+- 4-layer yellow glow effect (storefront sign look)
+- Neon yellow accent strip on NavBar
+- DVD case card styling with glossy overlay + shelf-pull hover
+- Category shelf labels with yellow gradient underline
+- Warm dark background with carpet texture overlay
 
-### Background Agents (may have completed after session ended)
-- **Backend Lead**: Building Phase 2 — media scanner service, media/admin API endpoints, FTS5 search, thumbnail generation. Check if `backend/src/services/media-scanner.ts` and `backend/src/routes/media.ts` exist.
-- **Lead Designer**: Blockbuster Video rebrand — updating design system to blue (#0a1628) / yellow (#FFD100) palette inspired by the classic Blockbuster Video store. Check `docs/design-system.md` and `frontend/src/app/globals.css` for updates.
+### Bug Fixes Applied
+- Search page reads ?type= query param correctly
+- Admin page handles paginated API response
+- Player controls: buffering spinner, click-to-play, fullscreen fix
+- Like/dislike: correct API values (like/dislike not up/down), proper DELETE for toggle-off
+- Rating response: reads ratingValue (number) not rating (string)
+- Avatar upload with refreshUser() for immediate display
+- MiniPlayer: close works, z-index fixed, layout padding dynamic
+- Timed comments: flatten nested user object from API
+- Single logo instance (no duplicates)
+- Emoji burst slowed to 4s
+- CommentInput repositioned above controls
 
-**To verify if background agents completed:**
-```bash
-# Check if media scanner exists (Phase 2 backend)
-ls backend/src/services/media-scanner.ts 2>/dev/null && echo "Phase 2 backend: DONE" || echo "Phase 2 backend: NOT DONE"
+### Security Audit (17 findings, all critical/high fixed)
+- Auth middleware on all media + admin routes
+- filePath stripped from all API responses
+- Refresh token cookie path restricted
+- UUID validation on file-serving paths
+- HSTS header in production
+- JSON body limit 100kb
 
-# Check if Blockbuster rebrand was applied (look for blue/yellow colors)
-grep -l "FFD100\|0a1628\|blockbuster" frontend/src/app/globals.css && echo "Rebrand: DONE" || echo "Rebrand: NOT DONE"
-```
+### QA Results
+- 12/12 API endpoint tests passing
+- All 12 frontend pages return HTTP 200
+- All 3 real movies stream with HTTP 206 range requests
 
 ---
 
 ## What's Working
-- `npm run dev` starts frontend (3000) + backend (4000)
-- `curl localhost:4000/api/health` returns OK
-- SQLite database at data/blockbuster.db with all tables
-- All three packages compile cleanly
-- Security middleware stack (CSP, rate limiting, CORS, auth)
+- `npm run dev` starts frontend (3001) + backend (4000)
+- 3 real movies in library: Legally Blonde (2001), Legally Blonde 2 (2003), Endless Love (2014)
+- Full streaming with seek, subtitles, player controls
+- Search with type filters (Movies/Shows/Music/Games)
+- Admin panel with metadata editing + upload
+- Recommendations, ratings, watch history
+- Friends, sharing, watch together, emoji reactions
+- Timed comments + live chat in player
+- Stats dashboard
+- Flash + DOS game support
+- Blockbuster store visual theme
 
-## What's Broken / Incomplete
-- Frontend has placeholder page only — no real UI screens yet
-- Backend has health endpoint only (unless Phase 2 agent finished)
-- No media files in library yet (directories empty — add your .mp4s to media/movies/ etc.)
-- Auth is stubbed (SKIP_AUTH=true for dev)
-- If designer agent finished the rebrand, the frontend engineer still needs to build the Netflix-style home page with the new Blockbuster theme
+## What Needs Attention
+- **Real media needed** — only 3 movies, no shows/music/games with real files yet
+- **Offline viewing** — user wants this eventually (not started)
+- **Player controls** — user reported some controls not working in browser (verified working via QA but needs manual browser testing)
+- **Profile avatar** — upload endpoint works but display may need browser verification
+- **Live chat backend** — Socket.io chat events (chat:join, chat:message) not yet handled server-side in socket.ts
+- **Docker deployment** — files created but not tested end-to-end
 
----
+## How to Add Media
+```bash
+# Movies
+mkdir -p media/movies/"Movie Name (Year)"
+# Put .mp4/.mkv file in there + optional metadata.json
 
-## Next Steps (in priority order)
+# Download via torrent
+aria2c --dir="media/movies/Movie Name (Year)" --seed-time=0 "magnet:?xt=..."
 
-### Immediate (Phase 2 completion)
-1. **Verify Phase 2 agent output** — Check if media scanner + API routes were created and compile
-2. **If NOT done**: Rebuild media scanner + API routes per plan
-3. **If done**: Test scanner by adding sample .mp4 files and hitting `POST /api/media/scan`
-4. **Verify Blockbuster rebrand** — Check if designer updated globals.css with blue/yellow theme
-5. **If NOT done**: Update design tokens to Blockbuster Video palette (blue bg, yellow accents)
+# Scan into library
+curl -X POST localhost:4000/api/media/scan
 
-### Build Phase 2 Frontend
-6. Build Netflix-style home page with Blockbuster Video theme (horizontal scroll rows by category)
-7. Build media detail page (poster, description, genres, episodes)
-8. Build search bar with FTS5 debounced search
-9. Build admin metadata UI (list + edit form)
-10. Build responsive layout (mobile grid + desktop scroll rows)
-
-Use agents: `frontend-engineer` for UI, `lead-designer` for review, `senior-frontend-engineer` for complex components.
-
-### Phase 3: Video Player & Streaming
-11. Signed media URL system (HMAC-SHA256)
-12. Stream endpoint with HTTP 206 range requests
-13. Plyr.io + HLS.js player component with blob URLs
-14. Subtitle loading (SRT→VTT auto-conversion)
-15. Video modes (fullscreen, half-screen, PiP)
-16. Anti-download protections
-17. Music player + persistent mini-player
-18. Episode navigation
-
-### Phase 4: Auth & User System
-19. Email login flow (JWT + Cloudflare Access stub)
-20. User profiles (name, avatar upload)
-21. Watch history tracking (position every 10s)
-22. Continue Watching row
-23. Like/dislike ratings
-
-### Phase 5–8: See plan file
-Full details in `/home/karen/.claude/plans/calm-churning-codd.md`
+# Or use the upload page at localhost:3001/admin/upload
+```
 
 ---
 
-## Architecture Reference
+## Architecture
 ```
 Monorepo (npm workspaces)
-├── frontend/          — Next.js 15 (port 3000) — proxies /api/* to backend
-├── backend/           — Express + Socket.io (port 4000)
+├── frontend/          — Next.js 16 (port 3001) — Blockbuster store UI
+├── backend/           — Express + Socket.io (port 4000) — API + streaming
 ├── shared/            — @blockbuster/shared TypeScript types
-├── media/             — Your media files go here
+├── media/             — Your media files (movies, shows, music, games)
 ├── subtitles/         — .srt and .vtt files
 ├── data/              — SQLite DB, avatars, thumbnails
-└── docs/              — PRD, design system, screen specs, security, architecture
+├── docs/              — PRD, design system, screen specs, security
+├── Caddyfile          — HTTPS reverse proxy config
+├── docker-compose.yml — Container orchestration
+└── .env.production    — Production env template
 ```
