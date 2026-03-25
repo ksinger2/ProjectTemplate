@@ -287,7 +287,7 @@ export function VideoPlayer({
       }
     };
     const onWaiting = () => setIsBuffering(true);
-    const onCanPlay = () => setIsBuffering(false);
+    const onPlaying = () => setIsBuffering(false);
     const onEnded = () => {
       setIsPlaying(false);
       setControlsVisible(true);
@@ -317,7 +317,7 @@ export function VideoPlayer({
     video.addEventListener('durationchange', onDurationChange);
     video.addEventListener('progress', onProgress);
     video.addEventListener('waiting', onWaiting);
-    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
     video.addEventListener('loadedmetadata', onLoadedMetadata);
     video.addEventListener('enterpictureinpicture', onEnterpip);
@@ -331,7 +331,7 @@ export function VideoPlayer({
       video.removeEventListener('durationchange', onDurationChange);
       video.removeEventListener('progress', onProgress);
       video.removeEventListener('waiting', onWaiting);
-      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('loadedmetadata', onLoadedMetadata);
       video.removeEventListener('enterpictureinpicture', onEnterpip);
@@ -534,6 +534,13 @@ export function VideoPlayer({
             />
           ))}
         </video>
+
+        {/* Buffering spinner overlay */}
+        {isBuffering && (
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            <div className="w-12 h-12 border-4 border-bb-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
 
         {/* Controls overlay */}
         <PlayerControls

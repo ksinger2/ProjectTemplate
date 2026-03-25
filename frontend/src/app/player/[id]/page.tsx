@@ -834,7 +834,7 @@ export default function PlayerPage() {
           <EmojiBurstOverlay emojis={emojis} />
 
           {/* Timed comment input */}
-          <div className="absolute bottom-4 left-4 right-4 z-30">
+          <div className="absolute bottom-20 left-4 right-4 z-30 pointer-events-none [&>*]:pointer-events-auto">
             <CommentInput
               mediaId={id}
               episodeId={episodeId}

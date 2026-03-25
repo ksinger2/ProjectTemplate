@@ -208,8 +208,14 @@ export function PlayerControls({
         </div>
       </div>
 
-      {/* Center controls */}
-      <div className="flex-1 flex items-center justify-center gap-6">
+      {/* Center controls — clicking empty space toggles play/pause */}
+      <div
+        className="flex-1 flex items-center justify-center gap-6"
+        onClick={(e) => {
+          // Only trigger play/pause if the click was on the backdrop, not on a button
+          if (e.target === e.currentTarget) onPlayPause();
+        }}
+      >
         {isBuffering ? (
           <Loader2 className="w-14 h-14 text-foreground animate-spin" />
         ) : (
