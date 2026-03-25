@@ -26,7 +26,7 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled && json.success) {
-          setRating(json.data.rating as RatingValue);
+          setRating((json.data.ratingValue ?? 0) as RatingValue);
         }
       } catch {
         // Silently fail - default to no rating
@@ -40,19 +40,34 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
   }, [mediaId]);
 
   const submitRating = useCallback(
-    async (newRating: 'up' | 'down' | null) => {
+    async (newRating: 'like' | 'dislike' | null) => {
       setIsSubmitting(true);
       try {
-        const res = await fetch('/api/ratings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ mediaId, rating: newRating }),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) {
-            setRating(json.data.rating as RatingValue);
+        if (newRating === null) {
+          // Remove the rating
+          const res = await fetch(`/api/ratings/${mediaId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) {
+              setRating(0);
+            }
+          }
+        } else {
+          // Set a rating
+          const res = await fetch('/api/ratings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ mediaId, rating: newRating }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) {
+              setRating((json.data.ratingValue ?? 0) as RatingValue);
+            }
           }
         }
       } catch {
@@ -66,12 +81,12 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
 
   const handleThumbsUp = () => {
     if (isSubmitting) return;
-    submitRating(rating === 1 ? null : 'up');
+    submitRating(rating === 1 ? null : 'like');
   };
 
   const handleThumbsDown = () => {
     if (isSubmitting) return;
-    submitRating(rating === -1 ? null : 'down');
+    submitRating(rating === -1 ? null : 'dislike');
   };
 
   return (
@@ -92,11 +107,11 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               aria-pressed={rating === 1}
               onClick={handleThumbsUp}
               disabled={isSubmitting}
-            >
-              <ThumbsUp className={cn('w-4 h-4', rating === 1 && 'fill-current')} />
-            </Button>
+            />
           }
-        />
+        >
+          <ThumbsUp className={cn('w-4 h-4', rating === 1 && 'fill-current')} />
+        </TooltipTrigger>
         <TooltipContent>Like</TooltipContent>
       </Tooltip>
 
@@ -116,11 +131,11 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               aria-pressed={rating === -1}
               onClick={handleThumbsDown}
               disabled={isSubmitting}
-            >
-              <ThumbsDown className={cn('w-4 h-4', rating === -1 && 'fill-current')} />
-            </Button>
+            />
           }
-        />
+        >
+          <ThumbsDown className={cn('w-4 h-4', rating === -1 && 'fill-current')} />
+        </TooltipTrigger>
         <TooltipContent>Dislike</TooltipContent>
       </Tooltip>
     </div>
