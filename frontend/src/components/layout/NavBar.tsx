@@ -58,18 +58,9 @@ export function NavBar() {
           aria-label="Blockbuster home"
         >
           <BlockbusterLogo
-            width={140}
-            height={42}
-            overhang={0}
+            width={130}
+            height={39}
             glow
-            className="hidden md:block"
-          />
-          <BlockbusterLogo
-            width={110}
-            height={33}
-            overhang={0}
-            glow
-            className="block md:hidden"
           />
         </Link>
 
