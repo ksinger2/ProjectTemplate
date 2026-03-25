@@ -94,6 +94,7 @@ See `docs/deployment.md` — Docker Compose for home server / NAS deployment.
 - `/runqa` — Internal QA audit using agents — no external tools needed
 - `/qa` — Comprehensive QA with automated + manual testing
 - `/fix` — Team-based QA and fix workflow
+- `/bug-list` — Queue bugs as you find them; agents triage, design, implement, review, and QA in parallel until all resolved
 - `/designreview` — Designer + QA review all screens, then engineering fixes issues
 - `/visual-loop` — Real-time visual iteration: screenshot → design review → PM review → engineering fix → loop until polished
 - `/codeclean` — All engineering agents review and clean up the entire codebase
