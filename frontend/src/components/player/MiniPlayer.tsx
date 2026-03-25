@@ -65,7 +65,7 @@ export function MiniPlayer() {
   return (
     <div
       className={cn(
-        'fixed left-0 right-0 z-[70] h-16',
+        'fixed left-0 right-0 z-30 h-16',
         'bottom-14 md:bottom-0',
         'bg-bb-nav border-t border-border',
         'animate-in slide-in-from-bottom duration-300',

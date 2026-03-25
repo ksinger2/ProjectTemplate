@@ -97,6 +97,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   // Refs for latest values in callbacks
   const playlistRef = useRef<MusicTrack[]>([]);
   const currentTrackRef = useRef<MusicTrack | null>(null);
+  const closedRef = useRef(false);
+  const loadAbortRef = useRef<AbortController | null>(null);
   playlistRef.current = playlist;
   currentTrackRef.current = currentTrack;
 
@@ -118,6 +120,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     };
 
     const onEnded = () => {
+      if (closedRef.current) return;
       setIsPlaying(false);
       // Auto-advance to next track
       const pl = playlistRef.current;
@@ -137,6 +140,8 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     };
 
     const onError = () => {
+      // Ignore errors triggered by intentionally clearing audio src on close
+      if (closedRef.current) return;
       setError('Failed to play this track. Please try again.');
       setIsPlaying(false);
       setIsLoading(false);
@@ -147,11 +152,13 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     };
 
     const onPlaying = () => {
+      if (closedRef.current) return;
       setIsPlaying(true);
       setIsLoading(false);
     };
 
     const onWaiting = () => {
+      if (closedRef.current) return;
       setIsLoading(true);
     };
 
@@ -181,6 +188,12 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
     const audio = audioRef.current;
     if (!audio) return;
 
+    // Abort any in-flight load request
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+
+    closedRef.current = false;
     setIsLoading(true);
     setError(null);
     setCurrentTime(0);
@@ -196,6 +209,7 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -207,12 +221,18 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
         throw new Error('Invalid stream URL response');
       }
 
+      // If closed while we were fetching, don't start playback
+      if (closedRef.current || controller.signal.aborted) return;
+
       // Set source and play
       audio.src = json.data.url;
       audio.load();
       await audio.play();
       setIsPlaying(true);
     } catch (err) {
+      // Ignore abort errors from intentional cancellation
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (closedRef.current) return;
       const message =
         err instanceof Error ? err.message : 'Failed to play track';
       setError(message);
@@ -321,10 +341,17 @@ export function MusicPlayerProvider({ children }: MusicPlayerProviderProps) {
   }, []);
 
   const close = useCallback(() => {
+    // Mark as closed so in-flight loads and error events are ignored
+    closedRef.current = true;
+    // Abort any pending stream URL fetch
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = null;
+
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
-      audio.src = '';
+      audio.removeAttribute('src');
+      audio.load(); // Reset the audio element cleanly
     }
     setCurrentTrack(null);
     setPlaylist([]);
