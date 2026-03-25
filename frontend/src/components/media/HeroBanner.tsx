@@ -38,20 +38,30 @@ interface HeroBannerProps {
 export function HeroBanner({ media }: HeroBannerProps) {
   if (!media) {
     return (
-      <section className="relative h-[50vh] md:h-[70vh] flex items-center justify-center bg-gradient-to-b from-bb-blue/30 to-background">
+      <section className="relative h-[50vh] md:h-[70vh] flex items-center justify-center bg-gradient-to-b from-bb-blue/20 via-bb-background to-background">
         {/* Bottom gradient fade */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
 
         <div className="relative z-10 text-center px-6">
-          <div className="inline-block bg-bb-blue rounded-lg px-8 py-4 mb-6 border border-bb-accent/30">
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-bb-accent">
+          <div
+            className="inline-block bg-bb-blue rounded-lg px-8 py-4 mb-6 border border-bb-accent/30"
+            style={{
+              boxShadow: '0 0 30px rgba(255, 209, 0, 0.15), 0 0 60px rgba(255, 209, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            <h1
+              className="text-4xl md:text-6xl font-extrabold tracking-tight text-bb-accent"
+              style={{
+                textShadow: '0 0 20px rgba(255, 209, 0, 0.6), 0 0 40px rgba(255, 209, 0, 0.3)',
+              }}
+            >
               BLOCKBUSTER
             </h1>
           </div>
           <p className="text-xl text-bb-accent font-semibold mb-2">
             Your Personal Video Store
           </p>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm italic">
             Be Kind, Rewind.
           </p>
         </div>
@@ -120,7 +130,8 @@ export function HeroBanner({ media }: HeroBannerProps) {
             className={cn(
               'inline-flex items-center justify-center rounded-lg px-6 h-11',
               'bg-bb-accent hover:bg-bb-accent-hover text-black font-semibold',
-              'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+              'transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+              'hover:shadow-[0_0_16px_rgba(255,209,0,0.5),0_0_32px_rgba(255,209,0,0.2)]',
             )}
           >
             <Play className="w-5 h-5 mr-2 fill-current" />
@@ -131,7 +142,8 @@ export function HeroBanner({ media }: HeroBannerProps) {
             className={cn(
               'inline-flex items-center justify-center rounded-lg px-6 h-11',
               'bg-secondary/80 hover:bg-secondary text-foreground font-semibold',
-              'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+              'transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+              'hover:shadow-[0_0_10px_rgba(255,255,255,0.1)]',
             )}
           >
             <Info className="w-5 h-5 mr-2" />

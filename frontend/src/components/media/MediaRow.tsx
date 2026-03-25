@@ -65,12 +65,11 @@ export function MediaRow({ title, items, isLoading = false }: MediaRowProps) {
     });
   }, []);
 
-  // Don't render empty rows (unless loading)
-  if (!isLoading && items.length === 0) return null;
+  const showPlaceholders = !isLoading && items.length === 0;
 
   return (
     <section
-      className="relative"
+      className="relative pb-6 mb-2 bb-shelf-edge"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
@@ -80,7 +79,7 @@ export function MediaRow({ title, items, isLoading = false }: MediaRowProps) {
       {isLoading ? (
         <div className="h-7 w-40 rounded bg-card animate-pulse mb-3" />
       ) : (
-        <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
+        <h2 className="text-lg font-bold tracking-wide uppercase text-foreground mb-4 bb-shelf-label">{title}</h2>
       )}
 
       {/* Scroll container */}
@@ -119,6 +118,12 @@ export function MediaRow({ title, items, isLoading = false }: MediaRowProps) {
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <MediaCardSkeleton key={i} />
+              ))
+            : showPlaceholders
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={`placeholder-${i}`} className="snap-start shrink-0 w-[140px] md:w-[160px]">
+                  <div className="bg-secondary rounded-lg aspect-[2/3] w-full" />
+                </div>
               ))
             : items.map((media) => (
                 <div key={media.id} className="snap-start">

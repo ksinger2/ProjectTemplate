@@ -55,10 +55,11 @@ export function MediaCard({ media, onPlay, size = 'md' }: MediaCardProps) {
     <Link
       href={`/media/${media.id}`}
       className={cn(
-        'group relative flex-shrink-0 rounded-lg overflow-hidden',
+        'group relative flex-shrink-0 rounded-sm overflow-hidden',
+        'bb-case-shadow bb-case-gloss',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
-        'transition-transform duration-200 ease-out',
-        'hover:scale-105 hover:z-10',
+        'transition-all duration-250 ease-out',
+        'hover:scale-[1.08] hover:z-10 hover:-translate-y-1',
         sizeClasses[size],
       )}
       onClick={(e) => {

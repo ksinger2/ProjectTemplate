@@ -39,10 +39,10 @@ export function NavBar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-20 w-full transition-colors duration-200',
+        'sticky top-0 z-40 w-full transition-all duration-300 bb-neon-strip',
         scrolled
-          ? 'bg-bb-background/80 backdrop-blur-[20px] border-b border-border'
-          : 'bg-transparent',
+          ? 'bg-bb-nav/90 backdrop-blur-[20px]'
+          : 'bg-gradient-to-b from-bb-nav/80 to-transparent',
       )}
     >
       <nav
@@ -58,14 +58,14 @@ export function NavBar() {
           <BlockbusterLogo
             width={140}
             height={42}
-            overhang={8}
+            overhang={0}
             glow
             className="hidden md:block"
           />
           <BlockbusterLogo
             width={110}
             height={33}
-            overhang={5}
+            overhang={0}
             glow
             className="block md:hidden"
           />
@@ -81,10 +81,10 @@ export function NavBar() {
                 <Link
                   href={href}
                   className={cn(
-                    'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    'hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
+                    'hover:text-bb-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     isActive
-                      ? 'text-foreground font-bold'
+                      ? 'text-bb-accent font-bold'
                       : 'text-muted-foreground',
                   )}
                   aria-current={isActive ? 'page' : undefined}

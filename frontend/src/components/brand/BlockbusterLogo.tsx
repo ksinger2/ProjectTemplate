@@ -21,9 +21,21 @@ export function BlockbusterLogo({
       style={{
         display: 'inline-block',
         position: 'relative',
-        zIndex: 30,
+        zIndex: 1,
         marginTop: overhang ? `${overhang}px` : undefined,
-        filter: glow ? 'drop-shadow(0 0 12px rgba(255, 209, 0, 0.5)) drop-shadow(0 0 30px rgba(255, 209, 0, 0.25))' : undefined,
+        filter: glow
+          ? [
+              // Tight warm glow right against the sign
+              'drop-shadow(0 0 4px rgba(255, 209, 0, 0.7))',
+              // Medium halo
+              'drop-shadow(0 0 14px rgba(255, 209, 0, 0.45))',
+              // Wide ambient backlight
+              'drop-shadow(0 0 32px rgba(255, 209, 0, 0.2))',
+              // Subtle downward shadow (sign mounted on wall)
+              'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5))',
+            ].join(' ')
+          : // Even without glow prop, give it a subtle mounted feel
+            'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))',
       }}
     >
       <img
