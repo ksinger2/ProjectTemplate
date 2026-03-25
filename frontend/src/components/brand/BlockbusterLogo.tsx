@@ -19,7 +19,6 @@ export function BlockbusterLogo({
     <span
       className={className}
       style={{
-        display: 'inline-block',
         position: 'relative',
         zIndex: 1,
         marginTop: overhang ? `${overhang}px` : undefined,
