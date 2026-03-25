@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Search, Film, Tv, Music, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchBar } from '@/components/search/SearchBar';
@@ -101,16 +102,65 @@ function SkeletonGrid() {
 }
 
 export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams?.get('type') as MediaType | null;
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Media[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<MediaType>('all');
+  const [activeFilter, setActiveFilter] = useState<MediaType>(
+    typeParam && ['movie', 'show', 'music', 'game'].includes(typeParam) ? typeParam : 'all',
+  );
+
+  // When navigating to /search?type=X, load media of that type automatically
+  useEffect(() => {
+    if (typeParam && ['movie', 'show', 'music', 'game'].includes(typeParam)) {
+      setActiveFilter(typeParam);
+      // Fetch all media of this type so the page isn't empty
+      setIsLoading(true);
+      setHasSearched(true);
+      fetch(`/api/media?type=${encodeURIComponent(typeParam)}&pageSize=50`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data?.items) {
+            setResults(json.data.items);
+          } else if (json.success && Array.isArray(json.data)) {
+            setResults(json.data);
+          } else {
+            setResults([]);
+          }
+        })
+        .catch(() => setResults([]))
+        .finally(() => setIsLoading(false));
+    }
+  }, [typeParam]);
 
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
 
     if (!q.trim()) {
+      // If we have a type filter from URL, reload that type's media
+      if (activeFilter !== 'all') {
+        setIsLoading(true);
+        setHasSearched(true);
+        try {
+          const res = await fetch(`/api/media?type=${encodeURIComponent(activeFilter)}&pageSize=50`);
+          const json = await res.json();
+          if (json.success && json.data?.items) {
+            setResults(json.data.items);
+          } else if (json.success && Array.isArray(json.data)) {
+            setResults(json.data);
+          } else {
+            setResults([]);
+          }
+        } catch {
+          setResults([]);
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
       setResults([]);
       setHasSearched(false);
       return;
@@ -132,7 +182,7 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeFilter]);
 
   const filteredResults =
     activeFilter === 'all'
@@ -169,7 +219,7 @@ export default function SearchPage() {
         {/* Results */}
         {isLoading ? (
           <SkeletonGrid />
-        ) : !hasSearched ? (
+        ) : !hasSearched && activeFilter === 'all' ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Search className="size-12 text-muted-foreground/40 mb-4" />
             <p className="text-lg font-medium text-foreground">
@@ -192,7 +242,8 @@ export default function SearchPage() {
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} for &ldquo;{query}&rdquo;
+              {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
+              {query ? <> for &ldquo;{query}&rdquo;</> : activeFilter !== 'all' ? <> in {TYPE_LABELS[activeFilter] || activeFilter}s</> : null}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {filteredResults.map((media) => (

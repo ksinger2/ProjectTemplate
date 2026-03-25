@@ -151,6 +151,20 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type client-side
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setSaveMessage('Only JPEG and PNG images are allowed.');
+      setTimeout(() => setSaveMessage(''), 3000);
+      return;
+    }
+
+    // Validate file size client-side (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setSaveMessage('Avatar must be under 2MB.');
+      setTimeout(() => setSaveMessage(''), 3000);
+      return;
+    }
+
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -165,15 +179,20 @@ export default function ProfilePage() {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data?.avatarUrl) {
-          // Add cache-busting param
           setAvatarUrl(`${json.data.avatarUrl}?t=${Date.now()}`);
+          setSaveMessage('Avatar updated');
+          setTimeout(() => setSaveMessage(''), 3000);
         }
+      } else {
+        const errJson = await res.json().catch(() => null);
+        setSaveMessage(errJson?.error || 'Failed to upload avatar. Try again.');
+        setTimeout(() => setSaveMessage(''), 3000);
       }
     } catch {
-      // Silently fail
+      setSaveMessage('Failed to upload avatar. Try again.');
+      setTimeout(() => setSaveMessage(''), 3000);
     } finally {
       setIsUploadingAvatar(false);
-      // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };

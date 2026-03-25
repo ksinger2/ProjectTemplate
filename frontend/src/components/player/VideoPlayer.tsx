@@ -297,8 +297,8 @@ export function VideoPlayer({
       setIsFullscreen(fs);
       if (fs) {
         setViewMode('fullscreen');
-      } else if (viewMode === 'fullscreen') {
-        setViewMode('normal');
+      } else {
+        setViewMode((prev) => (prev === 'fullscreen' ? 'normal' : prev));
       }
     };
     const onLoadedMetadata = () => {

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Loader2, Play, X } from 'lucide-react';
+import { Loader2, Play, X, Users } from 'lucide-react';
 import type { SubtitleTrack } from '@/components/player/SubtitleSelector';
 import type { Episode } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
@@ -551,7 +551,17 @@ export default function PlayerPage() {
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled && json.success && Array.isArray(json.data)) {
-          setComments(json.data);
+          // Normalize: backend returns user as nested object { user: { displayName, avatarUrl } }
+          const normalized: TimedComment[] = json.data.map((c: any) => ({
+            id: c.id,
+            userId: c.userId,
+            text: c.text,
+            timestampSeconds: c.timestampSeconds,
+            createdAt: c.createdAt,
+            displayName: c.displayName || c.user?.displayName || 'Anonymous',
+            avatarUrl: c.avatarUrl ?? c.user?.avatarUrl ?? null,
+          }));
+          setComments(normalized);
         }
       } catch {
         // Comments are optional
@@ -573,7 +583,17 @@ export default function PlayerPage() {
   }, [streamUrl]); // re-attach when stream loads
 
   // ---------- Handle new comment added ----------
-  const handleCommentAdded = useCallback((comment: TimedComment) => {
+  const handleCommentAdded = useCallback((raw: any) => {
+    // Normalize: backend returns user as nested object
+    const comment: TimedComment = {
+      id: raw.id,
+      userId: raw.userId,
+      text: raw.text,
+      timestampSeconds: raw.timestampSeconds,
+      createdAt: raw.createdAt,
+      displayName: raw.displayName || raw.user?.displayName || 'Anonymous',
+      avatarUrl: raw.avatarUrl ?? raw.user?.avatarUrl ?? null,
+    };
     setComments((prev) => [...prev, comment]);
   }, []);
 
@@ -696,10 +716,23 @@ export default function PlayerPage() {
       </div>
     ) : undefined;
 
-  // ---------- Extra controls for watch-together (emoji picker) ----------
-  const extraControls = isWatchTogether ? (
-    <EmojiPicker onSelect={handleEmojiSelect} />
-  ) : undefined;
+  // ---------- Emoji picker handler (works in solo and watch-together mode) ----------
+  const handleSoloEmojiSelect = useCallback(
+    (emoji: string) => {
+      if (isWatchTogether) {
+        handleEmojiSelect(emoji);
+      } else {
+        // Solo mode: just show the emoji burst locally
+        addEmoji(emoji, user?.displayName);
+      }
+    },
+    [isWatchTogether, handleEmojiSelect, addEmoji, user?.displayName],
+  );
+
+  // ---------- Extra controls (emoji picker -- always visible) ----------
+  const extraControls = (
+    <EmojiPicker onSelect={handleSoloEmojiSelect} />
+  );
 
   // ---------- Error state ----------
   if (error) {
@@ -760,8 +793,8 @@ export default function PlayerPage() {
             }
           />
 
-          {/* Watch Together overlay */}
-          {isWatchTogether && (
+          {/* Watch Together overlay or start button */}
+          {isWatchTogether ? (
             <WatchTogetherOverlay
               participants={participants}
               isSynced={isSynced}
@@ -769,10 +802,36 @@ export default function PlayerPage() {
               visible={true}
               onLeave={handleLeaveSession}
             />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                // Create a new watch-together session via the API
+                fetch('/api/sessions', {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mediaId: id, episodeId }),
+                })
+                  .then((res) => res.json())
+                  .then((json) => {
+                    if (json.success && json.data?.sessionId) {
+                      const ep = episodeId ? `&episode=${episodeId}` : '';
+                      router.push(`/player/${id}?session=${json.data.sessionId}${ep}`);
+                    }
+                  })
+                  .catch(() => {});
+              }}
+              className="absolute top-16 right-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+              title="Start a Watch Together session"
+            >
+              <Users className="size-3.5" />
+              Watch Together
+            </button>
           )}
 
-          {/* Emoji burst animations */}
-          {isWatchTogether && <EmojiBurstOverlay emojis={emojis} />}
+          {/* Emoji burst animations (visible in both solo and watch-together mode) */}
+          <EmojiBurstOverlay emojis={emojis} />
 
           {/* Timed comment input */}
           <div className="absolute bottom-4 left-4 right-4 z-30">
