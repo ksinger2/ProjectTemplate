@@ -25,6 +25,7 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -91,6 +92,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [],
   );
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users/me', { credentials: 'include' });
+      if (res.ok) {
+        const json = await res.json();
+        setUser(json.success ? (json.data?.user ?? json.data) : null);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -110,6 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: user !== null,
     login,
     logout,
+    refreshUser,
   };
 
   // Auto-redirect to /login if not authenticated (except login page)

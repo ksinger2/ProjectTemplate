@@ -92,11 +92,11 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               aria-pressed={rating === 1}
               onClick={handleThumbsUp}
               disabled={isSubmitting}
-            />
+            >
+              <ThumbsUp className={cn('w-4 h-4', rating === 1 && 'fill-current')} />
+            </Button>
           }
-        >
-          <ThumbsUp className={cn('w-4 h-4', rating === 1 && 'fill-current')} />
-        </TooltipTrigger>
+        />
         <TooltipContent>Like</TooltipContent>
       </Tooltip>
 
@@ -116,11 +116,11 @@ export function RatingButtons({ mediaId }: RatingButtonsProps) {
               aria-pressed={rating === -1}
               onClick={handleThumbsDown}
               disabled={isSubmitting}
-            />
+            >
+              <ThumbsDown className={cn('w-4 h-4', rating === -1 && 'fill-current')} />
+            </Button>
           }
-        >
-          <ThumbsDown className={cn('w-4 h-4', rating === -1 && 'fill-current')} />
-        </TooltipTrigger>
+        />
         <TooltipContent>Dislike</TooltipContent>
       </Tooltip>
     </div>

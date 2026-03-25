@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, User, Tv, Film, Music, Gamepad2, Users, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Tooltip,
   TooltipTrigger,
@@ -24,6 +25,7 @@ const NAV_LINKS = [
 
 export function NavBar() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
   const handleScroll = useCallback(() => {
@@ -166,6 +168,9 @@ export function NavBar() {
                   aria-label="Profile"
                 >
                   <Avatar size="default">
+                    {user?.avatarUrl && (
+                      <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                    )}
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>

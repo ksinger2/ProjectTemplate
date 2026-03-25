@@ -44,7 +44,7 @@ function formatJoinDate(dateStr: string | undefined): string {
 }
 
 export default function ProfilePage() {
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, logout, isLoading: authLoading, refreshUser } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -135,6 +135,7 @@ export default function ProfilePage() {
 
       if (res.ok) {
         setSaveMessage('Profile updated');
+        await refreshUser();
       } else {
         const json = await res.json().catch(() => null);
         setSaveMessage(json?.error || 'Failed to save. Try again.');
@@ -182,6 +183,8 @@ export default function ProfilePage() {
           setAvatarUrl(`${json.data.avatarUrl}?t=${Date.now()}`);
           setSaveMessage('Avatar updated');
           setTimeout(() => setSaveMessage(''), 3000);
+          // Refresh the auth context so the avatar updates globally (e.g. NavBar)
+          await refreshUser();
         }
       } else {
         const errJson = await res.json().catch(() => null);

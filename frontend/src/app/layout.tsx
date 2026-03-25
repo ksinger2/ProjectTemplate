@@ -3,9 +3,6 @@ import { Inter, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { MusicPlayerProvider } from "@/providers/MusicPlayerProvider";
-import { NavBar } from "@/components/layout/NavBar";
-import { MobileNav } from "@/components/layout/MobileNav";
-import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { LayoutShell } from "@/components/layout/LayoutShell";
 import "./globals.css";
 

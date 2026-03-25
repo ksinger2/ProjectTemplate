@@ -40,7 +40,7 @@ async function fetchMediaByType(type?: string): Promise<Media[]> {
     const url = type
       ? `/api/media?type=${type}&pageSize=20`
       : `/api/media?pageSize=20`;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) return [];
     const json: MediaResponse = await res.json();
     return json.success ? json.data.items : [];
@@ -147,38 +147,26 @@ export default function Home() {
 
       {/* Content Rows */}
       <div className="px-4 md:px-8 lg:px-12 pb-16 -mt-8 relative z-10 flex flex-col gap-8">
-        {isEmpty ? (
-          <div className="text-center py-20">
-            <Film className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Your library is empty
-            </h2>
-            <p className="text-muted-foreground">
-              Add media files to <code className="bg-card px-2 py-0.5 rounded text-sm">/media</code> and run a scan.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Continue Watching - first row */}
-            {user && (
-              <p className="text-lg font-medium text-foreground">
-                Welcome back, {user.displayName}!
-              </p>
-            )}
-
-            <ContinueWatchingRow />
-
-            <MediaRow
-              title="Recently Added"
-              items={recentlyAdded}
-              isLoading={isLoading}
-            />
-            <MediaRow title="Movies" items={movies} isLoading={isLoading} />
-            <MediaRow title="TV Shows" items={shows} isLoading={isLoading} />
-            <MediaRow title="Music" items={music} isLoading={isLoading} />
-            <MediaRow title="Games" items={games} isLoading={isLoading} />
-          </>
+        {/* Continue Watching - first row */}
+        {user && !isEmpty && (
+          <p className="text-lg font-medium text-foreground">
+            Welcome back, {user.displayName}!
+          </p>
         )}
+
+        {!isEmpty && <ContinueWatchingRow />}
+
+        {!isEmpty && (
+          <MediaRow
+            title="Recently Added"
+            items={recentlyAdded}
+            isLoading={isLoading}
+          />
+        )}
+        <MediaRow title="Movies" items={movies} isLoading={isLoading} />
+        <MediaRow title="TV Shows" items={shows} isLoading={isLoading} />
+        <MediaRow title="Music" items={music} isLoading={isLoading} />
+        <MediaRow title="Games" items={games} isLoading={isLoading} />
       </div>
     </main>
   );
