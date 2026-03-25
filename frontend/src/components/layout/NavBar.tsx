@@ -58,13 +58,15 @@ export function NavBar() {
           <BlockbusterLogo
             width={140}
             height={42}
-            overhang={10}
+            overhang={8}
+            glow
             className="hidden md:block"
           />
           <BlockbusterLogo
             width={110}
             height={33}
-            overhang={6}
+            overhang={5}
+            glow
             className="block md:hidden"
           />
         </Link>
