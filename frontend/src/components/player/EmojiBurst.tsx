@@ -21,10 +21,10 @@ export function useEmojiBurst() {
 
       setEmojis((prev) => [...prev, { id, emoji, x, displayName }]);
 
-      // Remove after animation completes (2s)
+      // Remove after animation completes (4s)
       setTimeout(() => {
         setEmojis((prev) => prev.filter((e) => e.id !== id));
-      }, 2200);
+      }, 4500);
     },
     [],
   );
@@ -56,7 +56,7 @@ export function EmojiBurstOverlay({ emojis }: EmojiBurstOverlayProps) {
             }}
             exit={{ opacity: 0 }}
             transition={{
-              duration: 2,
+              duration: 4,
               ease: 'easeOut',
             }}
             className="absolute flex flex-col items-center"
